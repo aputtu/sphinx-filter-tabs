@@ -1,334 +1,79 @@
-from __future__ import annotations
+import pytest
+from bs4 import BeautifulSoup
+from sphinx.testing.util import SphinxTestApp
+from sphinx.errors import SphinxError
 
-import re
-import uuid
-import copy
-import shutil
-from pathlib import Path
-from docutils import nodes
-from docutils.parsers.rst import Directive
-from sphinx.application import Sphinx
-from sphinx.writers.html import HTML5Translator
+# A standard RST content fixture for tests
+@pytest.fixture()
+def test_rst_content():
+    return """
+A Test Document
+===============
 
-from typing import TYPE_CHECKING, Any, Dict, List
+.. filter-tabs:: Python, Rust (default), Go
 
-from . import __version__
+    .. tab:: General
 
-if TYPE_CHECKING:
-    from sphinx.config import Config
-    from sphinx.environment import BuildEnvironment
+        This is general content.
 
-# --- Custom Docutils Nodes ---
-# We define custom node types for each major HTML element we generate.
-# This provides semantic clarity in the document tree and allows us to create
-# dedicated "visitor" functions for precise HTML rendering control.
-class ContainerNode(nodes.General, nodes.Element): pass
-class FieldsetNode(nodes.General, nodes.Element): pass
-class LegendNode(nodes.General, nodes.Element): pass
-class RadioInputNode(nodes.General, nodes.Element): pass
-class LabelNode(nodes.General, nodes.Element): pass
-class PanelNode(nodes.General, nodes.Element): pass
-class DetailsNode(nodes.General, nodes.Element): pass
-class SummaryNode(nodes.General, nodes.Element): pass
+    .. tab:: Python
 
-# --- Renderer Class ---
-class FilterTabsRenderer:
-    """
-    Handles the rendering logic for the filter-tabs directive.
+        This is Python content.
 
-    This class is responsible for generating the correct docutils node structure
-    for both HTML and fallback formats (like LaTeX), ensuring a clean separation
-    of concerns from the directive parsing logic.
-    """
-    def __init__(self, directive: Directive, tab_names: list[str], default_tab: str, temp_blocks: list[nodes.Node]):
-        self.directive = directive
-        self.env: BuildEnvironment = directive.state.document.settings.env
-        self.tab_names = tab_names
-        self.default_tab = default_tab
-        self.temp_blocks = temp_blocks
+    .. tab:: Rust
 
-    def render_html(self) -> list[nodes.Node]:
-        """
-        Renders the tab set for HTML output.
+        This is Rust content.
+"""
 
-        This method uses a modern, robust architecture that combines:
-        1. CSS Custom Properties for theming, passed via an inline `style` attribute.
-        2. A scoped, inline `<style>` block for dynamic filtering logic.
-        3. A clean HTML structure with invisible radio buttons as the functional core.
-        """
-        # Ensure each tab set on a page has a unique ID.
-        if not hasattr(self.env, 'filter_tabs_counter'): self.env.filter_tabs_counter = 0
-        self.env.filter_tabs_counter += 1
-        group_id = f"filter-group-{self.env.filter_tabs_counter}"
+@pytest.mark.sphinx('html')
+def test_html_structure_and_styles(app: SphinxTestApp, test_rst_content):
+    """Checks the generated HTML structure and inline CSS variables."""
+    app.srcdir.joinpath('index.rst').write_text(test_rst_content)
+    app.build()
 
-        config = self.env.app.config
-        
-        # 1. THEME: Pass config values to the CSS via inline CSS Custom Properties.
-        # This decouples the Python logic from the CSS styling.
-        style_vars = {
-            "--sft-border-radius": str(config.filter_tabs_border_radius),
-            "--sft-tab-background": str(config.filter_tabs_tab_background_color),
-            "--sft-tab-font-size": str(config.filter_tabs_tab_font_size),
-            "--sft-tab-highlight-color": str(config.filter_tabs_tab_highlight_color),
-            "--sft-collapsible-accent-color": str(config.filter_tabs_collapsible_accent_color),
-        }
-        style_string = "; ".join([f"{key}: {value}" for key, value in style_vars.items()])
+    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
+    container = soup.select_one('.sft-container')
+    assert container, "Main container .sft-container not found"
 
-        container = ContainerNode(classes=['sft-container'], style=style_string)
-        if config.filter_tabs_debug_mode: container += nodes.comment(f" ID: {group_id} ", f" ID: {group_id} ")
+    # Test that the inline style attribute exists
+    assert container.has_attr('style'), "Container is missing the style attribute"
+    assert "--sft-border-radius: 8px" in container['style']
 
-        fieldset = FieldsetNode()
-        legend = LegendNode(); legend += nodes.Text(f"Filter by: {', '.join(self.tab_names)}"); fieldset += legend
+@pytest.mark.sphinx('html', confoverrides={'filter_tabs_border_radius': '20px'})
+def test_config_overrides_work(app: SphinxTestApp, test_rst_content):
+    """Ensures that conf.py overrides are reflected in the style attribute."""
+    app.srcdir.joinpath('index.rst').write_text(test_rst_content)
+    app.build()
+    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
+    container = soup.select_one('.sft-container')
+    assert container.has_attr('style'), "Container is missing the style attribute"
+    assert "--sft-border-radius: 20px" in container['style']
 
-        # 2. FILTERING LOGIC: Generate a scoped <style> block.
-        # This creates the specific CSS rules needed for this tab set to function,
-        # linking each radio button to its corresponding panel using the :has() selector.
-        css_rules = []
-        for tab_name in self.tab_names:
-            radio_id = f"{group_id}-{self._css_escape(tab_name)}"
-            css_rules.append(
-                f".sft-tab-bar:has(#{radio_id}:checked) ~ .sft-content > .sft-panel[data-filter='{tab_name}'] {{ display: block; }}"
-            )
-        style_node = nodes.raw(text=f"<style>{''.join(css_rules)}</style>", format="html")
-        
-        # 3. HTML STRUCTURE: Place radio buttons inside the tab bar before their labels.
-        # This enables the use of the simple and robust `+` adjacent sibling CSS selector
-        # for highlighting the active tab's label.
-        tab_bar = nodes.container(classes=['sft-tab-bar'], role='tablist')
-        for tab_name in self.tab_names:
-            radio_id = f"{group_id}-{self._css_escape(tab_name)}"
-            
-            radio = RadioInputNode(type='radio', name=group_id, ids=[radio_id])
-            if tab_name == self.default_tab: radio['checked'] = 'checked'
-            tab_bar += radio
-            
-            label = LabelNode(for_id=radio_id, role='tab'); label += nodes.Text(tab_name)
-            tab_bar += label
-        fieldset += tab_bar
-
-        content_area = nodes.container(classes=['sft-content'])
-        
-        # 4. CONTENT POPULATION: Use a dictionary for direct lookup.
-        # This is efficient and avoids docutils node mutation issues where content
-        # would be lost after being rendered in the first panel.
-        content_map = {block['filter-name']: block.children for block in self.temp_blocks}
-
-        all_tab_names = self.tab_names + ["General"]
-        for tab_name in all_tab_names:
-            panel = PanelNode(classes=['sft-panel'], **{'data-filter': tab_name, 'role': 'tabpanel'})
-            if tab_name in content_map:
-                # Use deepcopy to ensure nodes can be safely reused if ever needed.
-                panel.extend(copy.deepcopy(content_map[tab_name]))
-            content_area += panel
-        
-        fieldset += content_area
-        container.children = [fieldset]
-        
-        # Return the style block first, then the visible content.
-        return [style_node, container]
-
-    def render_fallback(self) -> list[nodes.Node]:
-        """
-        Renders the content as simple admonitions for non-HTML builders (e.g., LaTeX).
-        This ensures the content is still accessible in PDF outputs.
-        """
-        output_nodes: list[nodes.Node] = []
-        content_map = {block['filter-name']: block.children for block in self.temp_blocks}
-        
-        # General content is rendered first, without an admonition box.
-        if "General" in content_map:
-            output_nodes.extend(copy.deepcopy(content_map["General"]))
-
-        # Each tab's content is rendered in its own titled admonition box.
-        for tab_name in self.tab_names:
-            if tab_name in content_map:
-                admonition = nodes.admonition()
-                admonition += nodes.title(text=tab_name)
-                admonition.extend(copy.deepcopy(content_map[tab_name]))
-                output_nodes.append(admonition)
-        return output_nodes
-
-    @staticmethod
-    def _css_escape(name: str) -> str:
-        """
-        Creates a stable, collision-free CSS identifier from a tab name
-        using a UUID namespace.
-        """
-        namespace = uuid.UUID('d1b1b3e8-5e7c-48d6-a235-9a4c14c9b139')
-        return str(uuid.uuid5(namespace, name.strip().lower()))
-
-# --- Directives ---
-
-class TabDirective(Directive):
-    """
-    Handles the `.. tab::` directive. It acts as a temporary container
-    to capture the content and name of a single tab panel.
-    """
-    has_content = True; required_arguments = 1; final_argument_whitespace = True
-    def run(self) -> list[nodes.Node]:
-        env = self.state.document.settings.env
-        if not hasattr(env, 'sft_context') or not env.sft_context:
-            raise self.error("`tab` can only be used inside a `filter-tabs` directive.")
-        
-        container = nodes.container(classes=['sft-temp-panel'])
-        container['filter-name'] = self.arguments[0].strip()
-        self.state.nested_parse(self.content, self.content_offset, container)
-        return [container]
-
-class FilterTabsDirective(Directive):
-    """
-    Handles the main `.. filter-tabs::` directive. It orchestrates the process:
-    1. Parses the tab names from its arguments.
-    2. Parses the inner content to find all the `.. tab::` blocks.
-    3. Passes the collected data to the FilterTabsRenderer to generate the output.
-    """
-    has_content = True; required_arguments = 1; final_argument_whitespace = True
-    def run(self) -> list[nodes.Node]:
-        env = self.state.document.settings.env
-        if hasattr(env, 'sft_context') and env.sft_context: raise self.error("Nesting `filter-tabs` is not supported.")
-        if not hasattr(env, 'sft_context'): env.sft_context = []
-        
-        # Use a context flag to ensure `tab` is only used inside `filter-tabs`.
-        env.sft_context.append(True)
-        temp_container = nodes.container()
-        self.state.nested_parse(self.content, self.content_offset, temp_container)
-        env.sft_context.pop()
-
-        temp_blocks = temp_container.findall(lambda n: isinstance(n, nodes.Element) and 'sft-temp-panel' in n.get('classes', []))
-        if not temp_blocks: return []
-
-        tabs_raw = [t.strip() for t in self.arguments[0].split(',')]
-        tab_names_only = [re.sub(r'\s*\(\s*default\s*\)$', '', t, re.IGNORECASE).strip() for t in tabs_raw]
-        if len(set(tab_names_only)) != len(tab_names_only): raise self.error(f"Duplicate tab names found: {tab_names_only}")
-
-        # Determine the default tab.
-        default_tab, tab_names = "", []
-        for tab in tabs_raw:
-            match = re.match(r"^(.*?)\s*\(\s*default\s*\)$", tab, re.IGNORECASE)
-            tab_name = match.group(1).strip() if match else tab
-            if match and not default_tab: default_tab = tab_name
-            tab_names.append(tab_name)
-        if not default_tab and tab_names: default_tab = tab_names[0]
-        
-        # Delegate the final node generation to the renderer class.
-        renderer = FilterTabsRenderer(self, tab_names, default_tab, temp_blocks)
-        if env.app.builder.name == 'html': return renderer.render_html()
-        else: return renderer.render_fallback()
-
-# --- Event Handlers ---
-
-def setup_collapsible_admonitions(app: Sphinx, doctree: nodes.document, docname: str):
-    """
-    Transforms `admonition` nodes with a `:class: collapsible` option
-    into accessible HTML `<details>` and `<summary>` elements.
-    Connected to the `doctree-resolved` event.
-    """
-    if not app.config.filter_tabs_collapsible_enabled or app.builder.name != 'html': return
-    for node in list(doctree.findall(nodes.admonition)):
-        if 'collapsible' not in node.get('classes', []): continue
-        
-        is_expanded = 'expanded' in node.get('classes', [])
-        title_node = next(iter(node.findall(nodes.title)), None)
-        summary_text = title_node.astext() if title_node else "Details"
-        if title_node: title_node.parent.remove(title_node)
-        
-        details_node = DetailsNode(classes=['collapsible-section'])
-        if is_expanded: details_node['open'] = 'open'
-        
-        summary_node = SummaryNode()
-        arrow_span = nodes.inline(classes=['custom-arrow']); arrow_span += nodes.Text("►")
-        summary_node += arrow_span
-        summary_node += nodes.Text(summary_text)
-        details_node += summary_node
-        
-        content_node = nodes.container(classes=['collapsible-content']); content_node.extend(copy.deepcopy(node.children))
-        details_node += content_node
-        
-        node.replace_self(details_node)
-
-def copy_static_files(app: Sphinx):
-    """
-    Programmatically copies the extension's CSS file to the build's _static directory.
-    This is a robust method that bypasses potential packaging issues.
-    Connected to the `builder-inited` event.
-    """
-    if app.builder.name != 'html': return
-    source_css = Path(__file__).parent / "static" / "filter_tabs.css"
-    dest_dir = Path(app.outdir) / "_static"
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copy(source_css, dest_dir)
-
-# --- Helper function for sanitizing attributes ---
-def _get_html_attrs(node: nodes.Element) -> Dict[str, Any]:
-    """
-    Sanitizes a node's attributes for HTML rendering, removing internal docutils
-    keys that should not appear in the final HTML.
-    """
-    attrs = node.attributes.copy()
-    for key in ('ids', 'backrefs', 'dupnames', 'names', 'classes', 'id', 'for_id'):
-        attrs.pop(key, None)
-    return attrs
-
-# --- HTML Visitor Functions ---
-# These functions map our custom docutils nodes to specific HTML tags and
-# ensure all necessary attributes are rendered correctly.
-def visit_container_node(self: HTML5Translator, node: ContainerNode) -> None:
-    self.body.append(self.starttag(node, 'div', **_get_html_attrs(node)))
-def depart_container_node(self: HTML5Translator, node: ContainerNode) -> None:
-    self.body.append('</div>')
-def visit_fieldset_node(self: HTML5Translator, node: FieldsetNode) -> None: self.body.append(self.starttag(node, 'fieldset', CLASS='sft-fieldset'))
-def depart_fieldset_node(self: HTML5Translator, node: FieldsetNode) -> None: self.body.append('</fieldset>')
-def visit_legend_node(self: HTML5Translator, node: LegendNode) -> None: self.body.append(self.starttag(node, 'legend', CLASS='sft-legend'))
-def depart_legend_node(self: HTML5Translator, node: LegendNode) -> None: self.body.append('</legend>')
-def visit_radio_input_node(self: HTML5Translator, node: RadioInputNode) -> None: self.body.append(self.starttag(node, 'input', **_get_html_attrs(node)))
-def depart_radio_input_node(self: HTML5Translator, node: RadioInputNode) -> None: pass
-def visit_label_node(self: HTML5Translator, node: LabelNode) -> None:
-    attrs = _get_html_attrs(node)
-    attrs['for'] = node['for_id']
-    self.body.append(self.starttag(node, 'label', **attrs))
-def depart_label_node(self: HTML5Translator, node: LabelNode) -> None: self.body.append('</label>')
-def visit_panel_node(self: HTML5Translator, node: PanelNode) -> None: self.body.append(self.starttag(node, 'div', CLASS='sft-panel', **_get_html_attrs(node)))
-def depart_panel_node(self: HTML5Translator, node: PanelNode) -> None: self.body.append('</div>')
-def visit_details_node(self: HTML5Translator, node: DetailsNode) -> None: self.body.append(self.starttag(node, 'details', **_get_html_attrs(node)))
-def depart_details_node(self: HTML5Translator, node: DetailsNode) -> None: self.body.append('</details>')
-def visit_summary_node(self: HTML5Translator, node: SummaryNode) -> None: self.body.append(self.starttag(node, 'summary', **_get_html_attrs(node)))
-def depart_summary_node(self: HTML5Translator, node: SummaryNode) -> None: self.body.append('</summary>')
-
-# --- Sphinx Setup Function ---
-def setup(app: Sphinx) -> Dict[str, Any]:
-    """
-    This function is the entry point for the Sphinx extension.
-    It registers all configurations, directives, nodes, and event handlers.
-    """
-    # Register configuration values that can be set in the user's conf.py
-    app.add_config_value('filter_tabs_tab_highlight_color', '#007bff', 'html', [str])
-    app.add_config_value('filter_tabs_tab_background_color', '#f0f0f0', 'html', [str])
-    app.add_config_value('filter_tabs_tab_font_size', '1em', 'html', [str])
-    app.add_config_value('filter_tabs_border_radius', '8px', 'html', [str])
-    app.add_config_value('filter_tabs_debug_mode', False, 'html', [bool])
-    app.add_config_value('filter_tabs_collapsible_enabled', True, 'html', [bool])
-    app.add_config_value('filter_tabs_collapsible_accent_color', '#17a2b8', 'html', [str])
+@pytest.mark.sphinx('latex')
+def test_latex_fallback_renders_admonitions(app: SphinxTestApp, test_rst_content):
+    """Checks that the LaTeX builder creates simple admonitions as a fallback."""
+    app.srcdir.joinpath('index.rst').write_text(test_rst_content)
+    app.build()
     
-    # Add the extension's static CSS file to the HTML build.
-    app.add_css_file('filter_tabs.css')
-    
-    # Register all custom nodes and their corresponding HTML visitor functions.
-    app.add_node(ContainerNode, html=(visit_container_node, depart_container_node))
-    app.add_node(FieldsetNode, html=(visit_fieldset_node, depart_fieldset_node))
-    app.add_node(LegendNode, html=(visit_legend_node, depart_legend_node))
-    app.add_node(RadioInputNode, html=(visit_radio_input_node, depart_radio_input_node))
-    app.add_node(LabelNode, html=(visit_label_node, depart_label_node))
-    app.add_node(PanelNode, html=(visit_panel_node, depart_panel_node))
-    app.add_node(DetailsNode, html=(visit_details_node, depart_details_node))
-    app.add_node(SummaryNode, html=(visit_summary_node, depart_summary_node))
-    
-    # Register the `.. filter-tabs::` and `.. tab::` directives.
-    app.add_directive('filter-tabs', FilterTabsDirective)
-    app.add_directive('tab', TabDirective)
-    
-    # Connect event handlers to the build process.
-    app.connect('doctree-resolved', setup_collapsible_admonitions)
-    app.connect('builder-inited', copy_static_files)
-    
-    # Return metadata about the extension.
-    return {'version': __version__, 'parallel_read_safe': True, 'parallel_write_safe': True}
+    # Look for the correct TeX filename based on the test project's name
+    result = (app.outdir / 'sphinxtestproject.tex').read_text()
+
+    # General content should appear directly
+    assert 'This is general content.' in result
+    assert r'\begin{sphinxadmonition}{note}{General}' not in result
+
+    # Specific tabs should be titled admonitions
+    assert r'\begin{sphinxadmonition}{note}{Python}' in result
+    assert 'This is Python content.' in result
+    assert r'\begin{sphinxadmonition}{note}{Rust}' in result
+    assert 'This is Rust content.' in result
+
+@pytest.mark.sphinx('html')
+def test_error_on_orphan_tab(app: SphinxTestApp, status, warning):
+    """Tests that a `tab` directive outside `filter-tabs` logs an error."""
+    app.srcdir.joinpath('index.rst').write_text(".. tab:: Orphan")
+    app.build()
+
+    # Check for the error message in the warning stream instead of expecting a crash.
+    warnings = warning.getvalue()
+    assert "`tab` can only be used inside a `filter-tabs` directive" in warnings
