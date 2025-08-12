@@ -14,6 +14,7 @@ This Sphinx extension provides a robust, accessible, and JavaScript-free way to 
 * **Graceful Fallback:** Renders as simple admonitions in non-HTML outputs like PDF/LaTeX.
 
 You can find the project's source code on the `GitHub repository <https://github.com/aputtu/sphinx-filter-tabs>`_.
+You can also download this documentation as a :download:`PDF file <sphinx-filter-tabs.pdf>`.
 
 .. _installation:
 
