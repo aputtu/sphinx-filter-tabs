@@ -23,13 +23,20 @@ jobs:
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        # Install a recent Sphinx version
-        pip install "Sphinx~=7.4"
-        # Install other dev tools from your requirements file
+        
+        # 1. Install the specific Sphinx version for this test job
+        pip install "Sphinx~=${{ matrix.sphinx-version }}.0"
+        
+        # 2. Install other dev tools
         pip install pytest-cov beautifulsoup4 black
-        # Install modern, compatible testing libraries
-        pip install "pytest>=8" "pytest-sphinx>=0.7.0"
-        # Install the extension itself
+        
+        # 3. Install a known compatible set of testing libraries
+        # pytest-sphinx==0.6.3 is not compatible with pytest>=7.
+        # We will use pytest version 6.x, which is the last major version
+        # known to be fully compatible.
+        pip install "pytest>=6,<7" "pytest-sphinx==0.6.3"
+        
+        # 4. Install the extension itself in editable mode
         pip install -e .
 
     - name: Run Tests
