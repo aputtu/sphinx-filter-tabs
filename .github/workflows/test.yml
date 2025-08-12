@@ -1,4 +1,4 @@
-name: Tests
+name: Tests and Docs Deployment
 
 on:
   push:
@@ -6,13 +6,18 @@ on:
   pull_request:
     branches: [ main ]
 
+# Add permissions for the workflow to write to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        # Test against the Sphinx 7.x versions that worked
         sphinx-version: ["7.0", "7.4", "8.0", "8.2"]
 
     steps:
@@ -26,18 +31,49 @@ jobs:
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        
-        # Install the specific Sphinx version for this job
         pip install "Sphinx~=${{ matrix.sphinx-version }}"
-        
-        # Install modern testing libraries compatible with Sphinx 7.x
-        pip install "pytest>=8" "pytest-sphinx==0.6.3"
-        
-        # Install other dev tools
+        pip install "pytest-sphinx==0.6.3" "pytest>=8.1.1"
         pip install pytest-cov beautifulsoup4 black
-        
-        # Install the extension itself
         pip install -e .
 
     - name: Run Tests
       run: pytest
+
+  # --- NEW JOB TO BUILD AND DEPLOY DOCS ---
+  deploy-docs:
+    # This job will only run if the 'test' job completes successfully
+    needs: test
+    # It will only run on pushes to the 'main' branch, not on pull requests
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install documentation dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Install Sphinx and the theme needed for the docs
+          pip install -r requirements/docs.txt
+          # Install the extension itself
+          pip install .
+          
+      - name: Build the documentation
+        run: sphinx-build -b html docs docs/_build/html
+
+      - name: Upload documentation artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'docs/_build/html'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
