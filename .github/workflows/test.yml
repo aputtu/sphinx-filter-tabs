@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         # Test against the Sphinx 7.x versions that worked
-        sphinx-version: ["7.0", "7.4"]
+        sphinx-version: ["7.0", "7.4", "8.0", "8.2"]
 
     steps:
     - uses: actions/checkout@v4

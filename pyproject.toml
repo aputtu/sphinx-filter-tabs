@@ -25,12 +25,12 @@ classifiers = [
     "Topic :: Software Development :: Documentation"
 ]
 requires-python = ">=3.8"
-dependencies = ["Sphinx>=7.0,<8.0"]
+dependencies = ["Sphinx>=7.0,<9.0"]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/sphinx-filter-tabs"
-Repository = "https://github.com/yourusername/sphinx-filter-tabs.git"
-Issues = "https://github.com/yourusername/sphinx-filter-tabs/issues"
+Homepage = "https://github.com/aputtu/sphinx-filter-tabs"
+Repository = "https://github.com/aputtu/sphinx-filter-tabs.git"
+Issues = "https://github.com/aputtu/sphinx-filter-tabs/issues"
 
 [project.entry-points."sphinx.extensions"]
 filter_tabs = "filter_tabs.extension:setup"
