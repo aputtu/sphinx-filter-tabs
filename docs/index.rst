@@ -1,6 +1,6 @@
-#####################################
+######################################
 sphinx-filter-tabs: Accessible Filters
-#####################################
+######################################
 
 Welcome to the official documentation for ``sphinx-filter-tabs``.
 
@@ -14,7 +14,7 @@ This Sphinx extension provides a robust, accessible, and JavaScript-free way to 
 * **Graceful Fallback:** Renders as simple admonitions in non-HTML outputs like PDF/LaTeX.
 
 You can find the project's source code on the `GitHub repository <https://github.com/aputtu/sphinx-filter-tabs>`_.
-You can also download this documentation as a :download:`PDF file <sphinx-filter-tabs.pdf>`.
+You can also download this documentation as a :download:`PDF file <_downloads/sphinxextension-filtertabs.pdf>`.
 
 .. _installation:
 

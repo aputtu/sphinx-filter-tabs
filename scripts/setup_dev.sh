@@ -31,17 +31,28 @@ pip install -e .
 # Remove the Sphinx build cache specifically before building
 rm -rf docs/_build
 
-echo "Building HTML documentation..."
-sphinx-build -b html docs docs/_build/html
+echo "✅ Development environment ready!"
+echo ""
+echo "--- Starting Documentation Build ---"
 
+# 1. Build LaTeX source files first
 echo "Building LaTeX source files..."
 sphinx-build -b latex docs docs/_build/latex
 
-# --- NEW: Compile the LaTeX source into a PDF ---
+# 2. Compile the LaTeX source into a PDF which HTML will refer to
 echo "Compiling PDF from LaTeX..."
-# Use the Makefile provided by Sphinx to run the pdflatex compiler
 (cd docs/_build/latex && make)
 
+# 3. Copy the generated PDF into the source tree for linking
+echo "Copying PDF to downloads directory..."
+# Use a wildcard (*) to be safe against small name changes
+cp docs/_build/latex/*.pdf docs/_downloads/
+
+# 4. NOW, build the HTML documentation
+echo "Building HTML documentation..."
+sphinx-build -b html docs docs/_build/html
+
 echo ""
-echo "✅ Development environment ready!"
-echo "To activate it in your terminal, run: source venv/bin/activate"
+echo "✅ Build complete!"
+echo "To activate the venv, run: source venv/bin/activate"
+

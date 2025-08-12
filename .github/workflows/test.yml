@@ -61,19 +61,21 @@ jobs:
           pip install -r requirements/docs.txt
           pip install .
           
-      - name: Build HTML and PDF documentation
+      - name: Build documentation and copy PDF
         run: |
-          # Build HTML
-          sphinx-build -b html docs docs/_build/html
-          # Build LaTeX for PDF
+          # 1. Build LaTeX for PDF
           sphinx-build -b latex docs docs/_build/latex
-          # Compile PDF from LaTeX source
+          # 2. Compile PDF from LaTeX source
           (cd docs/_build/latex && make)
+          # 3. Copy the generated PDF into the source tree for linking
+          cp docs/_build/latex/*.pdf docs/_downloads/
+          # 4. Build HTML
+          sphinx-build -b html docs docs/_build/html
 
-      - name: Copy PDF to HTML output directory
-        run: |
-          # Copy the generated PDF so it gets deployed with the HTML site
-          cp docs/_build/latex/sphinx-filter-tabs.pdf docs/_build/html/
+      - name: Upload documentation artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'docs/_build/html'
 
       - name: Upload documentation artifact
         uses: actions/upload-pages-artifact@v3
