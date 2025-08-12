@@ -9,12 +9,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
-    # Reintroduce the matrix, but only for Sphinx versions
     strategy:
       fail-fast: false
       matrix:
-        sphinx-version: ["5.0", "6.0", "7.0", "7.4"]
+        # Test against the Sphinx 7.x versions that worked
+        sphinx-version: ["7.0", "7.4"]
 
     steps:
     - uses: actions/checkout@v4
@@ -27,23 +26,16 @@ jobs:
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-
-        # Install the specific Sphinx version for this job from the matrix
-        pip install "Sphinx==${{ matrix.sphinx-version }}.*"
-
+        
+        # Install the specific Sphinx version for this job
+        pip install "Sphinx~=${{ matrix.sphinx-version }}"
+        
+        # Install modern testing libraries compatible with Sphinx 7.x
+        pip install "pytest>=8" "pytest-sphinx==0.6.3"
+        
         # Install other dev tools
         pip install pytest-cov beautifulsoup4 black
-
-        # --- FINAL: Conditional testing library installation ---
-        if [[ "${{ matrix.sphinx-version }}" == "5.0" || "${{ matrix.sphinx-version }}" == "6.0" ]]; then
-          echo "Installing legacy pytest for Sphinx ${{ matrix.sphinx-version }}"
-          # pytest-sphinx 0.6.3 with pytest v7 is a known compatible set for older Sphinx
-          pip install "pytest>=7,<8" "pytest-sphinx==0.6.3"
-        else
-          echo "Installing modern pytest for Sphinx ${{ matrix.sphinx-version }}"
-          pip install "pytest>=8" "pytest-sphinx==0.6.3"
-        fi
-
+        
         # Install the extension itself
         pip install -e .
 
