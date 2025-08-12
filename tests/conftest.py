@@ -8,3 +8,12 @@ pytest_plugins = "sphinx.testing.fixtures"
 @pytest.fixture(scope="session")
 def rootdir() -> Path:
     return Path(__file__).parent.parent.absolute()
+
+def pytest_addoption(parser):
+    """Registers the 'sphinx_srcdir' option for pytest.ini."""
+    parser.addini(
+        "sphinx_srcdir", 
+        "Sphinx source directory for tests", 
+        type="string", 
+        default="."
+    )
