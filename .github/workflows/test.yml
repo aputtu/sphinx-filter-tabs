@@ -16,22 +16,19 @@ jobs:
     - name: Set up Python 3.12
       uses: actions/setup-python@v5
       with:
+        # Python 3.12 meets the dependency requirements for modern pytest
         python-version: '3.12'
 
     - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        
-        # 1. Install a specific, recent Sphinx version
+        # Install a recent version of Sphinx
         pip install "Sphinx>=7.0,<8.0"
-        
-        # 2. Install other dev tools
+        # Install the latest pytest-sphinx and a version of pytest that meets its requirement
+        pip install "pytest-sphinx==0.6.3" "pytest>=8.1.1"
+        # Install other dev tools
         pip install pytest-cov beautifulsoup4 black
-        
-        # 3. Install compatible testing libraries for modern Sphinx/Python
-        pip install "pytest>=7,<8" "pytest-sphinx==0.6.3"
-        
-        # 4. Install the extension itself in editable mode
+        # Install the extension itself
         pip install -e .
 
     - name: Run Tests
