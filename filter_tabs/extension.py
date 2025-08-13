@@ -117,6 +117,7 @@ class FilterTabsRenderer:
         legend += nodes.Text(f"Filter by: {', '.join(self.tab_names)}")
         fieldset += legend
 
+        # --- Backward-compatible CSS Handling ---
         # Generate the dynamic CSS that handles the core filtering logic.
         css_rules = []
         for tab_name in self.tab_names:
@@ -127,21 +128,33 @@ class FilterTabsRenderer:
                 f".{SFT_TAB_BAR}:has(#{radio_id}:checked) ~ "
                 f".{SFT_CONTENT} > .{SFT_PANEL}[data-filter='{tab_name}'] {{ display: block; }}"
             )
-        # Embed the generated CSS directly into the HTML.
-        style_node = nodes.raw(text=f"<style>{''.join(css_rules)}</style>", format="html")
 
-        # Create the tab bar with radio inputs and labels.
-        tab_bar = nodes.container(classes=[SFT_TAB_BAR], role='tablist')
+        # 1. Write the dynamic CSS to a temporary file in the build's static directory.
+        css_content = ''.join(css_rules)
+        static_dir = Path(self.env.app.outdir) / '_static'
+        static_dir.mkdir(parents=True, exist_ok=True)
+        css_filename = f"dynamic-filter-tabs-{group_id}.css"
+        (static_dir / css_filename).write_text(css_content, encoding='utf-8')
+
+        # 2. Add the temporary CSS file using the backward-compatible app.add_css_file() method.
+        # This correctly places a <link> tag in the HTML <head>.
+        self.env.app.add_css_file(css_filename)
+
+        # Create the tab bar, but without the role="tablist"
+        # Screen Reader Ambiguity: Elements announced as group of radio buttons
+        tab_bar = nodes.container(classes=[SFT_TAB_BAR])
         for tab_name in self.tab_names:
             radio_id = f"{group_id}-{self._css_escape(tab_name)}"
-            # The radio buttons are functionally necessary but visually hidden.
+            
+            # Create the radio input, but without the role="tab"
             radio = RadioInputNode(type='radio', name=group_id, ids=[radio_id])
+            
             if tab_name == self.default_tab:
-                radio['checked'] = 'checked' # Set the default tab.
+                radio['checked'] = 'checked'
             tab_bar += radio
 
-            # The labels are the visible, clickable tabs.
-            label = LabelNode(for_id=radio_id, role='tab')
+            # The label correctly points to the radio input
+            label = LabelNode(for_id=radio_id)
             label += nodes.Text(tab_name)
             tab_bar += label
         fieldset += tab_bar
@@ -163,8 +176,8 @@ class FilterTabsRenderer:
         fieldset += content_area
         container.children = [fieldset]
 
-        # The final structure is the dynamic style block followed by the main container.
-        return [style_node, container]
+        # Return just the main container node. Sphinx handles adding the CSS file to the <head>.
+        return [container]
 
     def render_fallback(self) -> list[nodes.Node]:
         """Renders content as a series of simple admonitions for non-HTML builders (e.g., LaTeX/PDF)."""

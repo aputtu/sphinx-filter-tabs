@@ -25,6 +25,8 @@ wheels/
 # Sphinx
 docs/_build/
 .doctrees/
+docs/_downloads/*.pdf 
+   # We auto-generate PDF into folder, so don't include
 
 # Virtual environments
 venv/
