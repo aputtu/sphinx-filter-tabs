@@ -1,7 +1,5 @@
 /* Sphinx Filter Tabs -- Static Stylesheet */
-/* This file provides the structural and base theme styles for the component.
-   The core filtering logic (showing the active panel) is handled by a small,
-   dynamically generated <style> block created by extension.py. */
+/* This file provides the structural and base theme styles for the component. */
 
 /* Main container for the tab component */
 .sft-container {
@@ -50,32 +48,38 @@
     color: #555; 
     font-weight: 500; 
     /* THEME: The font size is controlled by a CSS variable. */
-    font-size: var(--sft-tab-font-size, 1em); 
+    font-size: var(--sft-font-size, 1em); 
     line-height: 1.5; 
 }
 
-/* THEME: The active tab label is highlighted using a CSS variable for the color.
-   The adjacent sibling selector (+) is robust and efficient. */
+/* THEME: The active tab label is highlighted using a CSS variable for the color. */
 .sft-tab-bar > input[type="radio"]:checked + label {
     border-bottom-color: var(--sft-tab-highlight-color, #007bff);
     color: #000;
 }
 
+/* Add a clear, visible focus ring for keyboard navigation. */
+.sft-tab-bar > input[type="radio"]:focus + label {
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.6);
+    border-radius: 5px;
+    outline: none;
+}
+
 /* The container for all content panels. */
 .sft-content { padding: 20px; }
 
-/* By default, hide all tab-specific panels. */
-.sft-container .sft-panel {
+/* By default, hide all tab-specific panels. The dynamic CSS will show the active one. */
+.sft-content > .sft-panel {
     display: none;
 }
-/* The "General" panel, however, is always visible. */
-.sft-container .sft-panel[data-filter="General"] {
+
+/* Always show the "General" panel, as it has no radio button to control it. */
+.sft-content > .sft-panel[data-filter="General"] {
     display: block;
 }
-/* The dynamically generated <style> block handles showing the one active panel. */
 
 
-/* Styles for collapsible sections, matching the golden record. */
+/* Styles for collapsible sections */
 .collapsible-section {
     border: 1px solid #e0e0e0;
     /* THEME: The accent color is controlled by a CSS variable. */
@@ -91,11 +95,9 @@
     background-color: #f9f9f9;
     outline: none;
 }
-/* Hide the default disclosure triangle in browsers like Chrome/Safari. */
 .collapsible-section summary::-webkit-details-marker {
     display: none;
 }
-/* Hide the default disclosure triangle in browsers like Firefox. */
 .collapsible-section summary {
     list-style: none;
 }
@@ -103,18 +105,3 @@
 .custom-arrow { display: inline-block; width: 1em; margin-right: 8px; transition: transform 0.2s; }
 .collapsible-section[open] > summary .custom-arrow { transform: rotate(90deg); }
 .collapsible-content { padding: 15px; }
-
-/* Add a clear, visible focus ring for keyboard navigation.
-   This rule targets the label that is the immediate sibling (+)
-   of a focused radio button. */
-.sft-tab-bar > input[type="radio"]:focus + label {
-    /* Create a prominent "outer" border using box-shadow */
-    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.6);
-    
-    /* Ensure the shadow respects the rounded corners */
-    border-radius: 5px;
-
-    /* Remove the default browser outline to avoid double borders */
-    outline: none;
-}
-

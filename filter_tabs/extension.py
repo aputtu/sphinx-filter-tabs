@@ -85,7 +85,7 @@ class FilterTabsRenderer:
         self.temp_blocks: list[nodes.Node] = temp_blocks
 
     def render_html(self) -> list[nodes.Node]:
-        """Constructs the complete docutils node tree for the HTML output."""
+        """Constructs the complete, W3C valid, and ARIA-compliant docutils node tree."""
         # Ensure a unique ID for each filter-tabs instance on a page.
         if not hasattr(self.env, 'filter_tabs_counter'):
             self.env.filter_tabs_counter = 0
@@ -104,79 +104,88 @@ class FilterTabsRenderer:
         }
         style_string = "; ".join([f"{key}: {value}" for key, value in style_vars.items()])
 
-        # If debug mode is on, log the generated ID and styles for easier troubleshooting.
+        # If debug mode is on, log the generated ID and styles.
         if config.filter_tabs_debug_mode:
             logger.info(f"[sphinx-filter-tabs] ID: {group_id}, Styles: '{style_string}'")
 
         # Create the main container node with the inline style for theming.
         container = ContainerNode(classes=[SFT_CONTAINER], style=style_string)
 
-        # Build the semantic structure using fieldset and a hidden legend for accessibility.
+        # Build the semantic structure using fieldset and a hidden legend.
         fieldset = FieldsetNode()
         legend = LegendNode()
         legend += nodes.Text(f"Filter by: {', '.join(self.tab_names)}")
         fieldset += legend
-
-        # --- Backward-compatible CSS Handling ---
-        # Generate the dynamic CSS that handles the core filtering logic.
+        
+        # --- CSS Generation ---
+        # This generates the dynamic CSS that handles the core filtering logic.
         css_rules = []
         for tab_name in self.tab_names:
             radio_id = f"{group_id}-{self._css_escape(tab_name)}"
-            # This CSS rule shows a panel only when its corresponding radio button is checked.
-            # The modern :has() selector makes this possible without any JavaScript.
+            panel_id = f"{radio_id}-panel"
+            # This rule finds the tab bar that contains the checked radio button,
+            # then finds its sibling content area and shows the correct panel inside.
             css_rules.append(
-                f".{SFT_TAB_BAR}:has(#{radio_id}:checked) ~ "
-                f".{SFT_CONTENT} > .{SFT_PANEL}[data-filter='{tab_name}'] {{ display: block; }}"
+                f".{SFT_TAB_BAR}:has(#{radio_id}:checked) ~ .sft-content > #{panel_id} {{ display: block; }}"
             )
-
-        # 1. Write the dynamic CSS to a temporary file in the build's static directory.
+        
+        # Write the dynamic CSS to a temporary file and add it to the build.
         css_content = ''.join(css_rules)
         static_dir = Path(self.env.app.outdir) / '_static'
         static_dir.mkdir(parents=True, exist_ok=True)
         css_filename = f"dynamic-filter-tabs-{group_id}.css"
         (static_dir / css_filename).write_text(css_content, encoding='utf-8')
-
-        # 2. Add the temporary CSS file using the backward-compatible app.add_css_file() method.
-        # This correctly places a <link> tag in the HTML <head>.
         self.env.app.add_css_file(css_filename)
 
-        # Create the tab bar, but without the role="tablist"
-        # Screen Reader Ambiguity: Elements announced as group of radio buttons
-        tab_bar = nodes.container(classes=[SFT_TAB_BAR])
-        for tab_name in self.tab_names:
+        # --- ARIA-Compliant HTML Structure ---
+        # The tab bar container now gets the role="tablist".
+        tab_bar = nodes.container(classes=[SFT_TAB_BAR], role='tablist')
+        fieldset += tab_bar
+
+        # The content area holds all the panels.
+        content_area = nodes.container(classes=[SFT_CONTENT])
+        fieldset += content_area
+
+        # Map tab names to their content blocks for easy lookup.
+        content_map = {block['filter-name']: block.children for block in self.temp_blocks}
+        
+        # 1. Create all radio buttons and labels first and add them to the tab_bar.
+        for i, tab_name in enumerate(self.tab_names):
             radio_id = f"{group_id}-{self._css_escape(tab_name)}"
-            
-            # Create the radio input, but without the role="tab"
+            panel_id = f"{radio_id}-panel"
+
+            # The radio button is for state management.
             radio = RadioInputNode(type='radio', name=group_id, ids=[radio_id])
             
-            if tab_name == self.default_tab:
+            is_default = (self.default_tab == tab_name) or (i == 0 and not self.default_tab)
+            if is_default:
                 radio['checked'] = 'checked'
             tab_bar += radio
 
-            # The label correctly points to the radio input
-            label = LabelNode(for_id=radio_id)
+            # The label is the visible tab. It gets role="tab" and aria-controls.
+            label = LabelNode(for_id=radio_id, role='tab', **{'aria-controls': panel_id})
+            if is_default:
+                label['aria-selected'] = 'true'
             label += nodes.Text(tab_name)
             tab_bar += label
-        fieldset += tab_bar
 
-        # Create the content area where all panels will reside.
-        content_area = nodes.container(classes=[SFT_CONTENT])
-        # Map tab names to their content blocks for easy lookup.
-        content_map = {block['filter-name']: block.children for block in self.temp_blocks}
-        # Ensure we create panels for all declared tabs plus the "General" tab.
-        all_tab_names = self.tab_names + ["General"]
+        # 2. Create all tab panels and add them to the content_area.
+        all_tab_names = ["General"] + self.tab_names
         for tab_name in all_tab_names:
-            panel = PanelNode(classes=[SFT_PANEL], **{'data-filter': tab_name, 'role': 'tabpanel'})
+            # The "General" panel does not correspond to a specific tab control.
+            if tab_name == "General":
+                panel = PanelNode(classes=[SFT_PANEL], **{'data-filter': tab_name})
+            else:
+                radio_id = f"{group_id}-{self._css_escape(tab_name)}"
+                panel_id = f"{radio_id}-panel"
+                # The panel gets role="tabpanel" and is linked back to the label.
+                panel = PanelNode(classes=[SFT_PANEL], ids=[panel_id], role='tabpanel', **{'aria-labelledby': radio_id})
+
             if tab_name in content_map:
-                # Use deepcopy to prevent docutils node mutation bugs. Since the same content
-                # might be referenced or processed multiple times, a deep copy ensures that
-                # each panel gets a completely independent set of nodes.
                 panel.extend(copy.deepcopy(content_map[tab_name]))
             content_area += panel
-        fieldset += content_area
-        container.children = [fieldset]
 
-        # Return just the main container node. Sphinx handles adding the CSS file to the <head>.
+        container.children = [fieldset]
         return [container]
 
     def render_fallback(self) -> list[nodes.Node]:
