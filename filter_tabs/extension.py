@@ -248,9 +248,10 @@ class FilterTabsDirective(Directive):
         and delegates the final rendering to the FilterTabsRenderer.
         """
         env = self.state.document.settings.env
-        # Prevent nesting of filter-tabs directives.
-        if hasattr(env, 'sft_context') and env.sft_context:
-            raise self.error("Nesting `filter-tabs` is not supported.")
+        
+        # Remove comments to prevent nesting of filter-tabs directives.
+        #if hasattr(env, 'sft_context') and env.sft_context:
+        #    raise self.error("Nesting `filter-tabs` is not supported.")
 
         # Set a context flag to indicate that we are inside a filter-tabs block.
         if not hasattr(env, 'sft_context'):

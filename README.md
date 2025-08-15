@@ -19,3 +19,19 @@ This extension provides `filter-tabs` and `tab` directives to create user-friend
 You can install this extension using `pip`:
 ```bash
 pip install sphinx-filter-tabs
+```
+
+## Development
+
+1. You can install a local version of the Sphinx with extension using:
+```bash
+./scripts/setup_dev.sh # Initially cleans previous folders in _docs/build  and venv.
+```
+
+Command to enter venv is provided.
+
+2. Once inside virtual environment, you can use following commands:
+```bash
+pytest # Runs test suite on configured version of Sphinx.
+tox # Check across multiple Sphinx versions. Manual install of tox required.
+```
