@@ -18,9 +18,19 @@
 /* The <legend> is visually hidden but essential for screen reader users. */
 .sft-legend { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
-/* The <input type="radio"> buttons are the functional core, but are not visible. */
+/* The <input type="radio"> buttons are the functional core.
+   They are hidden accessibly, not with display:none, so they remain
+   focusable for keyboard users. */
 .sft-tab-bar > input[type="radio"] {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 /* The tab bar containing the clickable labels. */
@@ -93,3 +103,18 @@
 .custom-arrow { display: inline-block; width: 1em; margin-right: 8px; transition: transform 0.2s; }
 .collapsible-section[open] > summary .custom-arrow { transform: rotate(90deg); }
 .collapsible-content { padding: 15px; }
+
+/* Add a clear, visible focus ring for keyboard navigation.
+   This rule targets the label that is the immediate sibling (+)
+   of a focused radio button. */
+.sft-tab-bar > input[type="radio"]:focus + label {
+    /* Create a prominent "outer" border using box-shadow */
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.6);
+    
+    /* Ensure the shadow respects the rounded corners */
+    border-radius: 5px;
+
+    /* Remove the default browser outline to avoid double borders */
+    outline: none;
+}
+
