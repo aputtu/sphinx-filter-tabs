@@ -5,7 +5,42 @@ Here is a live demonstration of the extension.
 
 .. filter-tabs:: Python (default), C++, JavaScript
 
-    ... (rest of your usage example content) ...
+    .. tab:: General
+
+        This is general content visible regardless of the selected filter. It's perfect for introductory text or information that applies to all tabs.
+
+    .. tab:: Python
+
+        This panel shows content specific to **Python**.
+
+        .. code-block:: python
+
+           def hello_world():
+               print("Hello from Python!")
+
+    .. tab:: C++
+
+        This panel shows content specific to **C++**.
+
+        .. code-block:: cpp
+
+           #include <iostream>
+
+           int main() {
+               std::cout << "Hello from C++!" << std::endl;
+               return 0;
+           }
+
+    .. tab:: JavaScript
+
+        This panel shows content specific to **JavaScript**.
+
+        .. code-block:: javascript
+
+           function helloWorld() {
+               console.log("Hello from JavaScript!");
+           }
+
 
 Nested Tabs
 -----------
