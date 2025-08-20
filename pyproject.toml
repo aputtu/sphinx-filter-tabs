@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 keywords = ["sphinx", "extension", "tabs", "filter", "documentation", "no-js", "aria", "accessibility"]
 name = "sphinx-filter-tabs"
-version = "0.9.0"  
+version = "0.9.1"  
 description = "A Sphinx extension for accessible, JS-free filterable content tabs."
 readme = "README.md"
 license = { text = "GNU General Public License v3.0" }

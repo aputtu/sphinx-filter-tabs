@@ -8,6 +8,7 @@ Version 0.9.0
 * Enhanced screen reader compatibility
 * Progressive JavaScript enhancement for better accessibility
 * Improved focus management and ARIA state handling
+* Refactored extension.py for readability and maintainability
 
 Version 0.8.0
 -------------
