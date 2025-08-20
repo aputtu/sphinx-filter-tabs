@@ -13,7 +13,9 @@ This Sphinx extension provides a robust, accessible, and JavaScript-free way to 
 **Key Features:**
 
 * **No JavaScript:** The filtering is achieved with pure CSS for speed and compatibility.
-* **Accessible:** Follows WAI-ARIA best practices for keyboard navigation and screen readers.
+* **Some JavaScript:** Optional, progressive enhancement approach
+* **Accessible:** Full WAI-ARIA compliance
+* **Keyboard Navigation:** Arrow keys, Home/End, Enter/Space + Screen reader compatibility
 * **Customizable:** Easily theme colors and styles directly from your ``conf.py``.
 * **Graceful Fallback:** Renders as simple admonitions in non-HTML outputs like PDF/LaTeX.
 

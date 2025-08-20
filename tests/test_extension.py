@@ -77,3 +77,77 @@ def test_error_on_orphan_tab(app: SphinxTestApp, status, warning):
     # Check for the error message in the warning stream instead of expecting a crash.
     warnings = warning.getvalue()
     assert "`tab` can only be used inside a `filter-tabs` directive" in warnings
+
+@pytest.mark.sphinx('html')
+def test_aria_attributes_present(app: SphinxTestApp, test_rst_content):
+    """Verify ARIA attributes are correctly applied for accessibility compliance."""
+    app.srcdir.joinpath('index.rst').write_text(test_rst_content)
+    app.build()
+    
+    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
+    
+    # Check tablist has correct role and attributes
+    tablist = soup.select_one('[role="tablist"]')
+    assert tablist, "Tablist role not found"
+    assert tablist.get('aria-orientation') == 'horizontal', "Tablist missing aria-orientation"
+    
+    # Check tabs have correct ARIA attributes
+    tabs = soup.select('[role="tab"]')
+    assert len(tabs) == 3, f"Expected 3 tabs, found {len(tabs)}"  # Python, Rust, Go
+    
+    # Verify exactly one tab is marked as selected (the default)
+    active_tabs = [t for t in tabs if t.get('aria-selected') == 'true']
+    assert len(active_tabs) == 1, f"Should have exactly one active tab, found {len(active_tabs)}"
+    
+    # Verify the default tab (Rust) is the one selected
+    default_tab = active_tabs[0]
+    assert 'Rust' in default_tab.get_text(), "Default tab should be 'Rust'"
+    
+    # Check that non-active tabs are marked as not selected
+    inactive_tabs = [t for t in tabs if t.get('aria-selected') == 'false']
+    assert len(inactive_tabs) == 2, f"Should have 2 inactive tabs, found {len(inactive_tabs)}"
+    
+    # Check each tab has required attributes
+    for tab in tabs:
+        assert tab.get('aria-controls'), "Tab missing aria-controls attribute"
+        assert tab.get('role') == 'tab', "Tab missing role=tab"
+        assert tab.get('tabindex') is not None, "Tab missing tabindex attribute"
+    
+    # Check panels have correct ARIA attributes
+    panels = soup.select('[role="tabpanel"]')
+    assert len(panels) == 3, f"Expected 3 panels, found {len(panels)}"  # Python, Rust, Go panels
+    
+    # Check each panel has required attributes
+    for panel in panels:
+        assert panel.get('aria-labelledby'), "Panel missing aria-labelledby attribute"
+        assert panel.get('role') == 'tabpanel', "Panel missing role=tabpanel"
+        assert panel.get('tabindex') == '0', "Panel should have tabindex=0 for screen readers"
+    
+    # Verify tab-panel relationships (aria-controls matches panel IDs)
+    for tab in tabs:
+        panel_id = tab.get('aria-controls')
+        matching_panel = soup.select_one(f'#{panel_id}')
+        assert matching_panel, f"Tab aria-controls='{panel_id}' doesn't match any panel ID"
+        assert matching_panel.get('aria-labelledby') == tab.get('id'), "Panel aria-labelledby doesn't match tab ID"
+
+@pytest.mark.sphinx('html')
+def test_keyboard_navigation_attributes(app: SphinxTestApp, test_rst_content):
+    """Test that keyboard navigation attributes are properly set."""
+    app.srcdir.joinpath('index.rst').write_text(test_rst_content)
+    app.build()
+    
+    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
+    
+    tabs = soup.select('[role="tab"]')
+    
+    # Check that only one tab has tabindex="0" (the active one)
+    focusable_tabs = [t for t in tabs if t.get('tabindex') == '0']
+    assert len(focusable_tabs) == 1, "Only one tab should be focusable (tabindex=0)"
+    
+    # Check that other tabs have tabindex="-1"
+    non_focusable_tabs = [t for t in tabs if t.get('tabindex') == '-1']
+    assert len(non_focusable_tabs) == 2, "Non-active tabs should have tabindex=-1"
+    
+    # Verify the focusable tab is the one marked as selected
+    focusable_tab = focusable_tabs[0]
+    assert focusable_tab.get('aria-selected') == 'true', "Focusable tab should be the selected one"

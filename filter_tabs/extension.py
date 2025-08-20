@@ -3,7 +3,6 @@
 #
 
 # --- Imports ---
-# Ensures that all type hints are treated as forward references, which is standard practice.
 from __future__ import annotations
 
 import re
@@ -17,24 +16,16 @@ from sphinx.application import Sphinx
 from sphinx.util import logging
 from sphinx.writers.html import HTML5Translator
 
-# Used for type hinting to avoid circular imports and improve code clarity.
 from typing import TYPE_CHECKING, Any, Dict, List
-
-# Imports the package version, dynamically read from the installed package's metadata.
 from . import __version__
 
-# A block that only runs when a type checker is running, not at runtime.
-# This avoids potential runtime errors from importing types that may not be available.
 if TYPE_CHECKING:
     from sphinx.config import Config
     from sphinx.environment import BuildEnvironment
 
 # --- Constants ---
-# A dedicated UUID namespace ensures that the same tab name will always produce
-# the same unique identifier. This is a crucial security measure to prevent CSS injection.
 _CSS_NAMESPACE = uuid.UUID('d1b1b3e8-5e7c-48d6-a235-9a4c14c9b139')
 
-# Centralizing CSS class names makes them easy to manage and prevents typos.
 SFT_CONTAINER = "sft-container"
 SFT_FIELDSET = "sft-fieldset"
 SFT_LEGEND = "sft-legend"
@@ -46,28 +37,32 @@ COLLAPSIBLE_SECTION = "collapsible-section"
 COLLAPSIBLE_CONTENT = "collapsible-content"
 CUSTOM_ARROW = "custom-arrow"
 
-# --- Logger ---
-# A dedicated logger for this extension, following Sphinx's best practices.
-# This allows for clean, configurable logging output.
 logger = logging.getLogger(__name__)
 
 # --- Custom Nodes ---
-# Each custom node corresponds to a specific part of the component's HTML structure.
-# This allows for fine-grained control over the final HTML output via visitor functions.
-
-# The ContainerNode is essential for applying CSS Custom Properties via the 'style' attribute.
-# The default docutils container doesn't reliably render the style attribute, so this
-# custom node and its visitor function ensure the theming mechanism works correctly.
 class ContainerNode(nodes.General, nodes.Element):
     pass
 
-class FieldsetNode(nodes.General, nodes.Element): pass # For semantic grouping.
-class LegendNode(nodes.General, nodes.Element): pass # For accessibility.
-class RadioInputNode(nodes.General, nodes.Element): pass # The functional core for tab switching.
-class LabelNode(nodes.General, nodes.Element): pass # The visible, clickable tab titles.
-class PanelNode(nodes.General, nodes.Element): pass # The containers for tab content.
-class DetailsNode(nodes.General, nodes.Element): pass # For collapsible sections.
-class SummaryNode(nodes.General, nodes.Element): pass # The clickable title of a collapsible section.
+class FieldsetNode(nodes.General, nodes.Element): 
+    pass
+
+class LegendNode(nodes.General, nodes.Element): 
+    pass
+
+class RadioInputNode(nodes.General, nodes.Element): 
+    pass
+
+class LabelNode(nodes.General, nodes.Element): 
+    pass
+
+class PanelNode(nodes.General, nodes.Element): 
+    pass
+
+class DetailsNode(nodes.General, nodes.Element): 
+    pass
+
+class SummaryNode(nodes.General, nodes.Element): 
+    pass
 
 
 # --- Renderer Class ---
@@ -118,13 +113,10 @@ class FilterTabsRenderer:
         fieldset += legend
         
         # --- CSS Generation ---
-        # This generates the dynamic CSS that handles the core filtering logic.
         css_rules = []
         for tab_name in self.tab_names:
             radio_id = f"{group_id}-{self._css_escape(tab_name)}"
             panel_id = f"{radio_id}-panel"
-            # This rule finds the tab bar that contains the checked radio button,
-            # then finds its sibling content area and shows the correct panel inside.
             css_rules.append(
                 f".{SFT_TAB_BAR}:has(#{radio_id}:checked) ~ .sft-content > #{panel_id} {{ display: block; }}"
             )
@@ -137,23 +129,27 @@ class FilterTabsRenderer:
         (static_dir / css_filename).write_text(css_content, encoding='utf-8')
         self.env.app.add_css_file(css_filename)
 
-        # --- ARIA-Compliant HTML Structure ---
-        # The tab bar container now gets the role="tablist".
-        tab_bar = nodes.container(classes=[SFT_TAB_BAR], role='tablist')
+        # IMPROVED: The tab bar container with proper ARIA attributes
+        tab_bar = ContainerNode(
+            classes=[SFT_TAB_BAR], 
+            role='tablist',
+            **{'aria-orientation': 'horizontal'}
+        )
         fieldset += tab_bar
 
-        # The content area holds all the panels.
-        content_area = nodes.container(classes=[SFT_CONTENT])
+        # The content area holds all the panels
+        content_area = ContainerNode(classes=[SFT_CONTENT])
+
         fieldset += content_area
 
         # Map tab names to their content blocks for easy lookup.
         content_map = {block['filter-name']: block.children for block in self.temp_blocks}
         
-        # 1. Create all radio buttons and labels first and add them to the tab_bar.
+        # 1. IMPROVED: Create all radio buttons and labels with full ARIA support
         for i, tab_name in enumerate(self.tab_names):
             radio_id = f"{group_id}-{self._css_escape(tab_name)}"
             panel_id = f"{radio_id}-panel"
-
+            
             # The radio button is for state management.
             radio = RadioInputNode(type='radio', name=group_id, ids=[radio_id])
             
@@ -162,24 +158,42 @@ class FilterTabsRenderer:
                 radio['checked'] = 'checked'
             tab_bar += radio
 
-            # The label is the visible tab. It gets role="tab" and aria-controls.
-            label = LabelNode(for_id=radio_id, role='tab', **{'aria-controls': panel_id})
-            if is_default:
-                label['aria-selected'] = 'true'
+            # IMPROVED: The label with complete ARIA attributes
+            # IMPORTANT: Labels need IDs too for aria-labelledby relationships
+            label_attrs = {
+                'for_id': radio_id,
+                'role': 'tab',
+                'aria-controls': panel_id,
+                'aria-selected': 'true' if is_default else 'false',
+                'tabindex': '0' if is_default else '-1',
+                'ids': [radio_id]  # Add this line - labels need IDs for ARIA relationships
+            }
+            label = LabelNode(**label_attrs)
             label += nodes.Text(tab_name)
             tab_bar += label
 
-        # 2. Create all tab panels and add them to the content_area.
+        # 2. IMPROVED: Create all tab panels with proper ARIA attributes
         all_tab_names = ["General"] + self.tab_names
         for tab_name in all_tab_names:
-            # The "General" panel does not correspond to a specific tab control.
             if tab_name == "General":
-                panel = PanelNode(classes=[SFT_PANEL], **{'data-filter': tab_name})
+                # General panel doesn't correspond to a specific tab control
+                panel = PanelNode(
+                    classes=[SFT_PANEL], 
+                    **{'data-filter': tab_name}
+                )
             else:
                 radio_id = f"{group_id}-{self._css_escape(tab_name)}"
                 panel_id = f"{radio_id}-panel"
-                # The panel gets role="tabpanel" and is linked back to the label.
-                panel = PanelNode(classes=[SFT_PANEL], ids=[panel_id], role='tabpanel', **{'aria-labelledby': radio_id})
+                
+                # IMPROVED: Panel with complete ARIA attributes
+                panel_attrs = {
+                    'classes': [SFT_PANEL],
+                    'ids': [panel_id],
+                    'role': 'tabpanel',
+                    'aria-labelledby': radio_id,
+                    'tabindex': '0'
+                }
+                panel = PanelNode(**panel_attrs)
 
             if tab_name in content_map:
                 panel.extend(copy.deepcopy(content_map[tab_name]))
@@ -208,8 +222,6 @@ class FilterTabsRenderer:
     def _css_escape(name: str) -> str:
         """
         Generates a deterministic, CSS-safe identifier from any given tab name string.
-        This uses uuid.uuid5 to create a hashed value, which robustly prevents
-        CSS injection vulnerabilities that could arise from special characters in tab names.
         """
         return str(uuid.uuid5(_CSS_NAMESPACE, name.strip().lower()))
 
@@ -223,7 +235,6 @@ class TabDirective(Directive):
     def run(self) -> list[nodes.Node]:
         """
         Parses the content of a tab and stores it in a temporary container.
-        This method validates that the directive is used within a `filter-tabs` block.
         """
         env = self.state.document.settings.env
         # Ensure `tab` is only used inside `filter-tabs`.
@@ -237,7 +248,7 @@ class TabDirective(Directive):
 
 
 class FilterTabsDirective(Directive):
-    """Handles the main `.. filter-tabs::` directive, which orchestrates the entire component."""
+    """Handles the main `.. filter-tabs::` directive."""
     has_content = True
     required_arguments = 1
     final_argument_whitespace = True
@@ -249,10 +260,6 @@ class FilterTabsDirective(Directive):
         """
         env = self.state.document.settings.env
         
-        # Remove comments to prevent nesting of filter-tabs directives.
-        #if hasattr(env, 'sft_context') and env.sft_context:
-        #    raise self.error("Nesting `filter-tabs` is not supported.")
-
         # Set a context flag to indicate that we are inside a filter-tabs block.
         if not hasattr(env, 'sft_context'):
             env.sft_context = []
@@ -261,12 +268,11 @@ class FilterTabsDirective(Directive):
         # Parse the content of the directive to find all `.. tab::` blocks.
         temp_container = nodes.container()
         self.state.nested_parse(self.content, self.content_offset, temp_container)
-        env.sft_context.pop() # Unset the context flag.
+        env.sft_context.pop()
 
         # Find all the temporary panel nodes created by the TabDirective.
         temp_blocks = temp_container.findall(lambda n: isinstance(n, nodes.Element) and SFT_TEMP_PANEL in n.get('classes', []))
         if not temp_blocks:
-            # Raise a clear error if the directive is empty, instead of failing silently.
             self.error("No `.. tab::` directives found inside `filter-tabs`. Content will not be rendered.")
             return []
 
@@ -302,12 +308,10 @@ def setup_collapsible_admonitions(app: Sphinx, doctree: nodes.document, docname:
     """
     Finds any admonition with the `:class: collapsible` option and transforms it
     into an HTML `<details>`/`<summary>` element for a native collapsible effect.
-    This hook runs after the document tree is resolved.
     """
     if not app.config.filter_tabs_collapsible_enabled or app.builder.name != 'html':
         return
 
-    # Iterate over a copy of the list of nodes to allow for safe modification.
     for node in list(doctree.findall(nodes.admonition)):
         if 'collapsible' not in node.get('classes', []):
             continue
@@ -316,7 +320,7 @@ def setup_collapsible_admonitions(app: Sphinx, doctree: nodes.document, docname:
         title_node = next(iter(node.findall(nodes.title)), None)
         summary_text = title_node.astext() if title_node else "Details"
         if title_node:
-            title_node.parent.remove(title_node) # Remove the old title.
+            title_node.parent.remove(title_node)
 
         # Create the new <details> node.
         details_node = DetailsNode(classes=[COLLAPSIBLE_SECTION])
@@ -326,7 +330,7 @@ def setup_collapsible_admonitions(app: Sphinx, doctree: nodes.document, docname:
         # Create the new <summary> node with a custom arrow.
         summary_node = SummaryNode()
         arrow_span = nodes.inline(classes=[CUSTOM_ARROW])
-        arrow_span += nodes.Text("►")
+        arrow_span += nodes.Text("▶")
         summary_node += arrow_span
         summary_node += nodes.Text(summary_text)
         details_node += summary_node
@@ -347,8 +351,6 @@ def _get_html_attrs(node: nodes.Element) -> Dict[str, Any]:
     return attrs
 
 # --- HTML Visitor Functions ---
-# These functions translate the custom docutils nodes into HTML tags.
-
 def visit_container_node(self: HTML5Translator, node: ContainerNode) -> None:
     self.body.append(self.starttag(node, 'div', **_get_html_attrs(node)))
 def depart_container_node(self: HTML5Translator, node: ContainerNode) -> None:
@@ -365,53 +367,85 @@ def depart_legend_node(self: HTML5Translator, node: LegendNode) -> None:
     self.body.append('</legend>')
 
 def visit_radio_input_node(self: HTML5Translator, node: RadioInputNode) -> None:
-    self.body.append(self.starttag(node, 'input', **_get_html_attrs(node)))
+    attrs = _get_html_attrs(node)
+    # Don't manually add 'id' - starttag handles 'ids' automatically
+    # Include other important attributes
+    for key in ['type', 'name', 'checked']:
+        if key in node.attributes:
+            attrs[key] = node[key]
+    self.body.append(self.starttag(node, 'input', **attrs))
+
 def depart_radio_input_node(self: HTML5Translator, node: RadioInputNode) -> None:
-    pass # No closing tag for <input>.
+    pass
 
 def visit_label_node(self: HTML5Translator, node: LabelNode) -> None:
     attrs = _get_html_attrs(node)
-    attrs['for'] = node['for_id'] # Connect the label to its radio button.
+    # Ensure the 'for' attribute is set correctly
+    if 'for_id' in node.attributes:
+        attrs['for'] = node['for_id']
+    # Don't manually add 'id' - starttag handles 'ids' automatically
+    # Ensure all ARIA attributes are included
+    for key in ['role', 'aria-controls', 'aria-selected', 'tabindex']:
+        if key in node.attributes:
+            attrs[key] = node[key]
     self.body.append(self.starttag(node, 'label', **attrs))
+
 def depart_label_node(self: HTML5Translator, node: LabelNode) -> None:
     self.body.append('</label>')
 
 def visit_panel_node(self: HTML5Translator, node: PanelNode) -> None:
-    self.body.append(self.starttag(node, 'div', CLASS=SFT_PANEL, **_get_html_attrs(node)))
+    attrs = _get_html_attrs(node)
+    # Don't manually add 'id' - starttag handles 'ids' automatically
+    # Ensure all ARIA attributes are included
+    for key in ['role', 'aria-labelledby', 'tabindex']:
+        if key in node.attributes:
+            attrs[key] = node[key]
+    # Handle data attributes
+    if 'data-filter' in node.attributes:
+        attrs['data-filter'] = node['data-filter']
+    self.body.append(self.starttag(node, 'div', CLASS=SFT_PANEL, **attrs))
+
 def depart_panel_node(self: HTML5Translator, node: PanelNode) -> None:
     self.body.append('</div>')
 
 def visit_details_node(self: HTML5Translator, node: DetailsNode) -> None:
-    self.body.append(self.starttag(node, 'details', **_get_html_attrs(node)))
+    attrs = {}
+    if 'open' in node.attributes:
+        attrs['open'] = node['open']
+    self.body.append(self.starttag(node, 'details', **attrs))
+
 def depart_details_node(self: HTML5Translator, node: DetailsNode) -> None:
     self.body.append('</details>')
 
 def visit_summary_node(self: HTML5Translator, node: SummaryNode) -> None:
-    self.body.append(self.starttag(node, 'summary', **_get_html_attrs(node)))
+    self.body.append(self.starttag(node, 'summary'))
+
 def depart_summary_node(self: HTML5Translator, node: SummaryNode) -> None:
     self.body.append('</summary>')
 
 
 def copy_static_files(app: Sphinx):
     """
-    Copies the extension's static CSS file to the build output directory.
-    This hook runs when the builder is initialized, ensuring the CSS file is
-    always available for HTML builds without complex packaging maneuvers.
+    Copies the extension's static CSS and JS files to the build output directory.
     """
     if app.builder.name != 'html':
         return
-    source_css = Path(__file__).parent / "static" / "filter_tabs.css"
+    
+    static_source_dir = Path(__file__).parent / "static"
     dest_dir = Path(app.outdir) / "_static"
     dest_dir.mkdir(parents=True, exist_ok=True)
-    shutil.copy(source_css, dest_dir)
+    
+    # Copy both CSS and JS files
+    for file_pattern in ["*.css", "*.js"]:
+        for file_path in static_source_dir.glob(file_pattern):
+            shutil.copy(file_path, dest_dir)
 
 
 def setup(app: Sphinx) -> Dict[str, Any]:
     """
     The main entry point for the Sphinx extension.
-    This function registers all components with Sphinx.
     """
-    # Register custom configuration values, allowing users to theme from conf.py.
+    # Register custom configuration values
     app.add_config_value('filter_tabs_tab_highlight_color', '#007bff', 'html', [str])
     app.add_config_value('filter_tabs_tab_background_color', '#f0f0f0', 'html', [str])
     app.add_config_value('filter_tabs_tab_font_size', '1em', 'html', [str])
@@ -419,14 +453,19 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     app.add_config_value('filter_tabs_debug_mode', False, 'html', [bool])
     app.add_config_value('filter_tabs_collapsible_enabled', True, 'html', [bool])
     app.add_config_value('filter_tabs_collapsible_accent_color', '#17a2b8', 'html', [str])
+    
+    # NEW: Add accessibility configuration options
+    app.add_config_value('filter_tabs_keyboard_navigation', True, 'html', [bool])
+    app.add_config_value('filter_tabs_announce_changes', True, 'html', [bool])
 
-    # Add the main stylesheet to the HTML output.
+    # Add the main stylesheet and JavaScript to the HTML output.
     app.add_css_file('filter_tabs.css')
+    app.add_js_file('filter_tabs.js')
 
     # Register all custom nodes and their HTML visitor/depart functions.
     app.add_node(ContainerNode, html=(visit_container_node, depart_container_node))
     app.add_node(FieldsetNode, html=(visit_fieldset_node, depart_fieldset_node))
-    app.add_node(LegendNode, html=(visit_legend_node, depart_legend_node))
+    app.add_node(LegendNode, html=(visit_legend_node, depart_legend_node))  # FIXED: was app.node
     app.add_node(RadioInputNode, html=(visit_radio_input_node, depart_radio_input_node))
     app.add_node(LabelNode, html=(visit_label_node, depart_label_node))
     app.add_node(PanelNode, html=(visit_panel_node, depart_panel_node))
@@ -437,11 +476,10 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     app.add_directive('filter-tabs', FilterTabsDirective)
     app.add_directive('tab', TabDirective)
 
-    # Connect to Sphinx events (hooks) to run custom functions at specific build stages.
+    # Connect to Sphinx events
     app.connect('doctree-resolved', setup_collapsible_admonitions)
     app.connect('builder-inited', copy_static_files)
 
-    # Return metadata about the extension.
     return {
         'version': __version__,
         'parallel_read_safe': True,

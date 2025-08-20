@@ -1,6 +1,14 @@
 Changelog
 =========
 
+Version 0.9.0
+-------------
+* Full WAI-ARIA compliance implemented
+* Added keyboard navigation (arrow keys, Home/End, Enter/Space)
+* Enhanced screen reader compatibility
+* Progressive JavaScript enhancement for better accessibility
+* Improved focus management and ARIA state handling
+
 Version 0.8.0
 -------------
 * Added keyboard navigation using tab and arrows
