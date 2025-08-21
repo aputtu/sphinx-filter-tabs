@@ -1,3 +1,61 @@
+
+
+sphinx-filtertabs-export_20250821_140040.txt
+2,719 lines
+
+txt
+
+I have issues with the following Sphinx extension project, as it outputs duplicated IDs in the HTML. From earlier session, I was advised to go ahead with minimal steps, and ensure the following:
+
+Go back to your working code and apply just these surgical fixes:
+1. Fix duplicate IDs: Use position-based IDs instead of hash-based
+2. Remove invalid ARIA: Strip role="tab" and aria-selected from labels
+3. Keep DOM structure identical: Don't move elements around
+
+Looking at your code, I can see the issue. The problem is in the visit_label_node function where you're trying to add IDs to labels that already have IDs set through the RadioInputNode. This creates duplicate IDs in the HTML output.
+
+Here are the minimal surgical fixes needed:
+
+
+Fixed extension.py - Minimal changes for valid HTML
+Code 
+Now let's update the CSS to work with the simpler HTML structure:
+
+
+Fixed filter_tabs.css - Working with simpler HTML
+ 
+Finally, let's simplify the JavaScript to work without ARIA attributes on labels:
+
+
+Fixed filter_tabs.js - Optional keyboard enhancement
+Code 
+
+
+
+Continue
+
+
+Fixed filter_tabs.js - Optional keyboard enhancement
+Code 
+Now let's also update the test file to match the simpler HTML structure:
+
+
+Fixed test_extension.py - Updated tests for simpler HTML
+Code 
+Summary of Changes
+I've made the minimal surgical fixes to resolve the duplicate ID issue and create valid HTML:
+
+1. Fixed Duplicate IDs (extension.py)
+Changed from hash-based IDs (_css_escape) to position-based IDs (f"{group_id}-tab-{i}")
+This ensures unique, predictable IDs for each tab instance
+2. Removed Invalid ARIA from Labels (extension.py)
+Removed all ARIA attributes from labels (role="tab", aria-selected, aria-controls)
+Labels now only have the for attribute pointing to their radio button
+Removed ID assignment f
+
+
+
+
 import pytest
 from bs4 import BeautifulSoup
 from sphinx.testing.util import SphinxTestApp
@@ -79,75 +137,84 @@ def test_error_on_orphan_tab(app: SphinxTestApp, status, warning):
     assert "`tab` can only be used inside a `filter-tabs` directive" in warnings
 
 @pytest.mark.sphinx('html')
-def test_aria_attributes_present(app: SphinxTestApp, test_rst_content):
-    """Verify ARIA attributes are correctly applied for accessibility compliance."""
+def test_valid_html_structure(app: SphinxTestApp, test_rst_content):
+    """Verify HTML structure is valid and doesn't have duplicate IDs."""
     app.srcdir.joinpath('index.rst').write_text(test_rst_content)
     app.build()
     
     soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
     
-    # Check tablist has correct role and attributes
-    tablist = soup.select_one('[role="tablist"]')
-    assert tablist, "Tablist role not found"
-    assert tablist.get('aria-orientation') == 'horizontal', "Tablist missing aria-orientation"
+    # Check that we have radio buttons and labels
+    tab_bar = soup.select_one('.sft-tab-bar')
+    assert tab_bar, "Tab bar not found"
     
-    # Check tabs have correct ARIA attributes
-    tabs = soup.select('[role="tab"]')
-    assert len(tabs) == 3, f"Expected 3 tabs, found {len(tabs)}"  # Python, Rust, Go
+    radios = tab_bar.select('input[type="radio"]')
+    labels = tab_bar.select('label')
     
-    # Verify exactly one tab is marked as selected (the default)
-    active_tabs = [t for t in tabs if t.get('aria-selected') == 'true']
-    assert len(active_tabs) == 1, f"Should have exactly one active tab, found {len(active_tabs)}"
+    assert len(radios) == 3, f"Expected 3 radio buttons, found {len(radios)}"
+    assert len(labels) == 3, f"Expected 3 labels, found {len(labels)}"
     
-    # Verify the default tab (Rust) is the one selected
-    default_tab = active_tabs[0]
-    assert 'Rust' in default_tab.get_text(), "Default tab should be 'Rust'"
+    # Check radio buttons have unique IDs
+    radio_ids = [r.get('id') for r in radios if r.get('id')]
+    assert len(radio_ids) == len(set(radio_ids)), "Radio buttons have duplicate IDs"
     
-    # Check that non-active tabs are marked as not selected
-    inactive_tabs = [t for t in tabs if t.get('aria-selected') == 'false']
-    assert len(inactive_tabs) == 2, f"Should have 2 inactive tabs, found {len(inactive_tabs)}"
+    # Check labels have proper 'for' attributes
+    for label in labels:
+        assert label.get('for'), "Label missing 'for' attribute"
+        # Verify the 'for' points to an existing radio
+        target_id = label.get('for')
+        matching_radio = soup.select_one(f'#{target_id}')
+        assert matching_radio, f"Label 'for' attribute points to non-existent ID: {target_id}"
     
-    # Check each tab has required attributes
-    for tab in tabs:
-        assert tab.get('aria-controls'), "Tab missing aria-controls attribute"
-        assert tab.get('role') == 'tab', "Tab missing role=tab"
-        assert tab.get('tabindex') is not None, "Tab missing tabindex attribute"
+    # Check panels exist and have unique IDs
+    panels = soup.select('.sft-panel[role="tabpanel"]')
+    assert len(panels) == 3, f"Expected 3 panels with role=tabpanel, found {len(panels)}"
+    
+    panel_ids = [p.get('id') for p in panels if p.get('id')]
+    assert len(panel_ids) == len(set(panel_ids)), "Panels have duplicate IDs"
+    
+    # Verify all IDs in the document are unique
+    all_elements_with_ids = soup.select('[id]')
+    all_ids = [elem.get('id') for elem in all_elements_with_ids]
+    assert len(all_ids) == len(set(all_ids)), f"Duplicate IDs found in HTML: {[id for id in all_ids if all_ids.count(id) > 1]}"
+
+@pytest.mark.sphinx('html')
+def test_no_aria_on_labels(app: SphinxTestApp, test_rst_content):
+    """Verify labels don't have invalid ARIA attributes."""
+    app.srcdir.joinpath('index.rst').write_text(test_rst_content)
+    app.build()
+    
+    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
+    
+    labels = soup.select('.sft-tab-bar label')
+    
+    # Check that labels DON'T have ARIA role or aria-selected
+    for label in labels:
+        assert not label.get('role'), "Label should not have 'role' attribute"
+        assert not label.get('aria-selected'), "Label should not have 'aria-selected' attribute"
+        assert not label.get('aria-controls'), "Label should not have 'aria-controls' attribute"
+        # Labels should only have 'for' attribute for accessibility
+        assert label.get('for'), "Label should have 'for' attribute"
+
+@pytest.mark.sphinx('html')
+def test_panels_have_proper_aria(app: SphinxTestApp, test_rst_content):
+    """Test that panels have proper ARIA attributes for screen readers."""
+    app.srcdir.joinpath('index.rst').write_text(test_rst_content)
+    app.build()
+    
+    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
     
     # Check panels have correct ARIA attributes
     panels = soup.select('[role="tabpanel"]')
-    assert len(panels) == 3, f"Expected 3 panels, found {len(panels)}"  # Python, Rust, Go panels
+    assert len(panels) == 3, f"Expected 3 panels, found {len(panels)}"
     
     # Check each panel has required attributes
     for panel in panels:
         assert panel.get('aria-labelledby'), "Panel missing aria-labelledby attribute"
         assert panel.get('role') == 'tabpanel', "Panel missing role=tabpanel"
         assert panel.get('tabindex') == '0', "Panel should have tabindex=0 for screen readers"
-    
-    # Verify tab-panel relationships (aria-controls matches panel IDs)
-    for tab in tabs:
-        panel_id = tab.get('aria-controls')
-        matching_panel = soup.select_one(f'#{panel_id}')
-        assert matching_panel, f"Tab aria-controls='{panel_id}' doesn't match any panel ID"
-        assert matching_panel.get('aria-labelledby') == tab.get('id'), "Panel aria-labelledby doesn't match tab ID"
-
-@pytest.mark.sphinx('html')
-def test_keyboard_navigation_attributes(app: SphinxTestApp, test_rst_content):
-    """Test that keyboard navigation attributes are properly set."""
-    app.srcdir.joinpath('index.rst').write_text(test_rst_content)
-    app.build()
-    
-    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
-    
-    tabs = soup.select('[role="tab"]')
-    
-    # Check that only one tab has tabindex="0" (the active one)
-    focusable_tabs = [t for t in tabs if t.get('tabindex') == '0']
-    assert len(focusable_tabs) == 1, "Only one tab should be focusable (tabindex=0)"
-    
-    # Check that other tabs have tabindex="-1"
-    non_focusable_tabs = [t for t in tabs if t.get('tabindex') == '-1']
-    assert len(non_focusable_tabs) == 2, "Non-active tabs should have tabindex=-1"
-    
-    # Verify the focusable tab is the one marked as selected
-    focusable_tab = focusable_tabs[0]
-    assert focusable_tab.get('aria-selected') == 'true', "Focusable tab should be the selected one"
+        
+        # Verify aria-labelledby points to an existing element
+        labelledby_id = panel.get('aria-labelledby')
+        matching_element = soup.select_one(f'#{labelledby_id}')
+        assert matching_element, f"Panel aria-labelledby='{labelledby_id}' doesn't match any element ID"

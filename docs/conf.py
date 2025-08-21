@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath('..'))
 project = 'Sphinx Extension - Filter Tabs'
 copyright = '2025, Aputsiak Niels Janussen'
 author = 'Aputsiak Niels Janussen'
-release = '0.9.1'
+release = '0.9.2'
 
 # -- General configuration ---------------------------------------------------
 extensions = [
@@ -58,20 +58,21 @@ latex_elements = {
     ''',
     
     # Simple, clean title page
-    'maketitle': r'''
-        \begin{titlepage}
-        \centering
-        \vspace*{2cm}
-        {\huge\bfseries Sphinx Extension - Filter Tabs Documentation\par}
-        \vspace{1cm}
-        {\Large Aputsiak Niels Janussen\par}
-        \vspace{0.5cm}
-        {\large Version 0.9.1\par}
-        \vspace{0.5cm}
-        {\normalsize\today\par}
-        \vfill
-        \end{titlepage}
-        \cleardoublepage
+    'maketitle': f'''
+        \\begin{{titlepage}}
+        \\centering
+        \\vspace*{{2cm}}
+        {{ \\huge\\bfseries Sphinx Extension - Filter Tabs Documentation\\par}}
+  
+       \\vspace{{1cm}}
+        {{ \\Large Aputsiak Niels Janussen\\par}}
+        \\vspace{{0.5cm}}
+        {{\\large Version {release}\\par}}
+        \\vspace{{0.5cm}}
+        {{\\normalsize\\today\\par}}
+        \\vfill
+        \\end{{titlepage}}
+        \\cleardoublepage
     ''',
 }
 

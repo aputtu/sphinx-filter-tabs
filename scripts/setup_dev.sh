@@ -28,15 +28,22 @@ pip install -r requirements/dev.txt
 pip install -r requirements/docs.txt
 pip install -e .
 
-# Make all shell scripts in scripts/ executable
-echo "Making development scripts executable..."
-find scripts/ -name "*.sh" -exec chmod +x {} \;
-echo "✅ All scripts are now executable"
-
 # Remove the Sphinx build cache specifically before building
 rm -rf docs/_build
 
 echo "✅ Development environment ready!"
+echo ""
+
+# Make all development scripts executable
+echo "📋 Making development scripts executable..."
+find scripts/ -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
+
+# List the scripts that were made executable
+if [ -d "scripts" ]; then
+    echo "✅ Made executable:"
+    find scripts/ -name "*.sh" -executable -exec echo "   📄 {}" \;
+fi
+
 echo ""
 echo "--- Starting Documentation Build ---"
 
@@ -59,5 +66,11 @@ sphinx-build -b html docs docs/_build/html
 
 echo ""
 echo "✅ Build complete!"
-echo "To activate the venv, run: source venv/bin/activate"
-
+echo ""
+echo "📋 Available commands:"
+echo "   source venv/bin/activate     # Activate virtual environment"
+echo "   ./scripts/dev.sh test        # Run tests"
+echo "   ./scripts/dev.sh html        # Build HTML docs"
+echo "   ./scripts/dev.sh all         # Run tests + build docs"
+echo "   ./scripts/export-project.sh  # Export complete project to txt for LLMs to use"
+echo ""

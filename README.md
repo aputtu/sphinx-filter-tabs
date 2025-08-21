@@ -34,4 +34,6 @@ Command to enter venv is provided.
 ```bash
 pytest # Runs test suite on configured version of Sphinx.
 tox # Check across multiple Sphinx versions. Manual install of tox required.
+./scripts/export-project.sh # Outputs directory structure and code to txt
+./dev.sh [options] # Allows for faster generation for html, pdf, clean up
 ```

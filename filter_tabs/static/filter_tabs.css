@@ -63,35 +63,21 @@
     line-height: 1.5; 
 }
 
-/* IMPROVED: Visual feedback for aria-selected state */
-.sft-tab-bar > label[aria-selected="true"] {
-    border-bottom-color: var(--sft-tab-highlight-color, #007bff);
-    color: #000;
-    font-weight: 600;
-}
-
-.sft-tab-bar > label[aria-selected="false"] {
-    border-bottom-color: transparent;
-    color: #555;
-    font-weight: 500;
-}
-
-/* Fallback for when ARIA attributes aren't present */
+/* Style for checked state - using adjacent sibling selector */
 .sft-tab-bar > input[type="radio"]:checked + label {
     border-bottom-color: var(--sft-tab-highlight-color, #007bff);
     color: #000;
     font-weight: 600;
 }
 
-/* IMPROVED: Hover states that respect ARIA states */
-.sft-tab-bar > label[aria-selected="false"]:hover {
+/* Hover state for labels */
+.sft-tab-bar > label:hover {
     color: #333;
     border-bottom-color: rgba(0, 123, 255, 0.3);
 }
 
-/* IMPROVED: Better focus management for keyboard navigation */
-.sft-tab-bar > input[type="radio"]:focus + label,
-.sft-tab-bar > label:focus-visible {
+/* Focus state for keyboard navigation */
+.sft-tab-bar > input[type="radio"]:focus + label {
     box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.6);
     border-radius: 3px;
     outline: none;
@@ -114,7 +100,7 @@
     display: block;
 }
 
-/* IMPROVED: Ensure panels have proper focus styles for screen readers */
+/* Ensure panels have proper focus styles for screen readers */
 .sft-content > .sft-panel[role="tabpanel"]:focus {
     outline: 2px solid var(--sft-tab-highlight-color, #007bff);
     outline-offset: 2px;
@@ -161,9 +147,9 @@
     padding: 15px; 
 }
 
-/* IMPROVED: Support for high contrast mode */
+/* Support for high contrast mode */
 @media (prefers-contrast: high) {
-    .sft-tab-bar > label[aria-selected="true"] {
+    .sft-tab-bar > input[type="radio"]:checked + label {
         border-bottom-width: 4px;
     }
     
@@ -172,7 +158,7 @@
     }
 }
 
-/* IMPROVED: Support for reduced motion preferences */
+/* Support for reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
     .sft-tab-bar > label,
     .custom-arrow {

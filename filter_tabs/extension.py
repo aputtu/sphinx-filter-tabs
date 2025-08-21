@@ -114,8 +114,9 @@ class FilterTabsRenderer:
         
         # --- CSS Generation ---
         css_rules = []
-        for tab_name in self.tab_names:
-            radio_id = f"{group_id}-{self._css_escape(tab_name)}"
+        for i, tab_name in enumerate(self.tab_names):
+            # FIX 1: Use position-based IDs instead of hash-based
+            radio_id = f"{group_id}-tab-{i}"
             panel_id = f"{radio_id}-panel"
             css_rules.append(
                 f".{SFT_TAB_BAR}:has(#{radio_id}:checked) ~ .sft-content > #{panel_id} {{ display: block; }}"
@@ -129,25 +130,21 @@ class FilterTabsRenderer:
         (static_dir / css_filename).write_text(css_content, encoding='utf-8')
         self.env.app.add_css_file(css_filename)
 
-        # IMPROVED: The tab bar container with proper ARIA attributes
-        tab_bar = ContainerNode(
-            classes=[SFT_TAB_BAR], 
-            role='tablist',
-            **{'aria-orientation': 'horizontal'}
-        )
+        # The tab bar container - NO ARIA attributes here
+        tab_bar = ContainerNode(classes=[SFT_TAB_BAR])
         fieldset += tab_bar
 
         # The content area holds all the panels
         content_area = ContainerNode(classes=[SFT_CONTENT])
-
         fieldset += content_area
 
         # Map tab names to their content blocks for easy lookup.
         content_map = {block['filter-name']: block.children for block in self.temp_blocks}
         
-        # 1. IMPROVED: Create all radio buttons and labels with full ARIA support
+        # 1. Create all radio buttons and labels - NO ARIA on labels
         for i, tab_name in enumerate(self.tab_names):
-            radio_id = f"{group_id}-{self._css_escape(tab_name)}"
+            # FIX 1: Use position-based IDs
+            radio_id = f"{group_id}-tab-{i}"
             panel_id = f"{radio_id}-panel"
             
             # The radio button is for state management.
@@ -158,23 +155,15 @@ class FilterTabsRenderer:
                 radio['checked'] = 'checked'
             tab_bar += radio
 
-            # IMPROVED: The label with complete ARIA attributes
-            # IMPORTANT: Labels need IDs too for aria-labelledby relationships
-            label_attrs = {
-                'for_id': radio_id,
-                'role': 'tab',
-                'aria-controls': panel_id,
-                'aria-selected': 'true' if is_default else 'false',
-                'tabindex': '0' if is_default else '-1',
-                'ids': [radio_id]  # Add this line - labels need IDs for ARIA relationships
-            }
-            label = LabelNode(**label_attrs)
+            # FIX 2: Remove ALL ARIA attributes from labels - just use for_id
+            # FIX 3: Don't add IDs to labels - they don't need them
+            label = LabelNode(for_id=radio_id)
             label += nodes.Text(tab_name)
             tab_bar += label
 
-        # 2. IMPROVED: Create all tab panels with proper ARIA attributes
+        # 2. Create all tab panels - panels can have ARIA attributes
         all_tab_names = ["General"] + self.tab_names
-        for tab_name in all_tab_names:
+        for i, tab_name in enumerate(all_tab_names):
             if tab_name == "General":
                 # General panel doesn't correspond to a specific tab control
                 panel = PanelNode(
@@ -182,10 +171,12 @@ class FilterTabsRenderer:
                     **{'data-filter': tab_name}
                 )
             else:
-                radio_id = f"{group_id}-{self._css_escape(tab_name)}"
+                # FIX 1: Use position-based IDs for panels too
+                tab_index = self.tab_names.index(tab_name)
+                radio_id = f"{group_id}-tab-{tab_index}"
                 panel_id = f"{radio_id}-panel"
                 
-                # IMPROVED: Panel with complete ARIA attributes
+                # Panels can have ARIA attributes for screen readers
                 panel_attrs = {
                     'classes': [SFT_PANEL],
                     'ids': [panel_id],
@@ -383,11 +374,7 @@ def visit_label_node(self: HTML5Translator, node: LabelNode) -> None:
     # Ensure the 'for' attribute is set correctly
     if 'for_id' in node.attributes:
         attrs['for'] = node['for_id']
-    # Don't manually add 'id' - starttag handles 'ids' automatically
-    # Ensure all ARIA attributes are included
-    for key in ['role', 'aria-controls', 'aria-selected', 'tabindex']:
-        if key in node.attributes:
-            attrs[key] = node[key]
+    # FIX: Don't add any ARIA attributes or IDs to labels
     self.body.append(self.starttag(node, 'label', **attrs))
 
 def depart_label_node(self: HTML5Translator, node: LabelNode) -> None:
@@ -395,8 +382,7 @@ def depart_label_node(self: HTML5Translator, node: LabelNode) -> None:
 
 def visit_panel_node(self: HTML5Translator, node: PanelNode) -> None:
     attrs = _get_html_attrs(node)
-    # Don't manually add 'id' - starttag handles 'ids' automatically
-    # Ensure all ARIA attributes are included
+    # Panels can have ARIA attributes
     for key in ['role', 'aria-labelledby', 'tabindex']:
         if key in node.attributes:
             attrs[key] = node[key]
@@ -465,7 +451,7 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     # Register all custom nodes and their HTML visitor/depart functions.
     app.add_node(ContainerNode, html=(visit_container_node, depart_container_node))
     app.add_node(FieldsetNode, html=(visit_fieldset_node, depart_fieldset_node))
-    app.add_node(LegendNode, html=(visit_legend_node, depart_legend_node))  # FIXED: was app.node
+    app.add_node(LegendNode, html=(visit_legend_node, depart_legend_node))
     app.add_node(RadioInputNode, html=(visit_radio_input_node, depart_radio_input_node))
     app.add_node(LabelNode, html=(visit_label_node, depart_label_node))
     app.add_node(PanelNode, html=(visit_panel_node, depart_panel_node))
