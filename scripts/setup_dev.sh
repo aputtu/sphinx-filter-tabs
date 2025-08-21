@@ -28,6 +28,11 @@ pip install -r requirements/dev.txt
 pip install -r requirements/docs.txt
 pip install -e .
 
+# Make all shell scripts in scripts/ executable
+echo "Making development scripts executable..."
+find scripts/ -name "*.sh" -exec chmod +x {} \;
+echo "✅ All scripts are now executable"
+
 # Remove the Sphinx build cache specifically before building
 rm -rf docs/_build
 
