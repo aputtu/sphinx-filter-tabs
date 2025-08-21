@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath('..'))
 project = 'Sphinx Extension - Filter Tabs'
 copyright = '2025, Aputsiak Niels Janussen'
 author = 'Aputsiak Niels Janussen'
-release = '0.9.0'
+release = '0.9.1'
 
 # -- General configuration ---------------------------------------------------
 extensions = [
@@ -19,53 +19,68 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
-# -- LaTeX output ------------------------------------------------
-# Uses your existing index.rst source file
-latex_documents = [
-    ('index', 'sphinxextension-filtertabs.tex', 'Sphinx Extension - Filter Tabs Documentation',
-     'Aputsiak Niels Janussen', 'manual'),
-]
-
-# LaTeX settings optimized for A4 single-page output without blank pages
+# LaTeX settings with standard, widely available fonts
 latex_elements = {
     'papersize': 'a4paper',
-    'pointsize': '9pt',
-    'geometry': r'\usepackage[a4paper,margin=1.5cm]{geometry}',
-    'fncychap': r'\usepackage[Bjarne]{fncychap}',
-    'classoptions': ',oneside',  # Force single-sided layout - this prevents blank pages
+    'pointsize': '11pt',
+    
+    # Use a simple, standard chapter style
+    'fncychap': r'\usepackage[Sonny]{fncychap}',
+    
+    # Fix hyperref issues
+    'passoptionstopackages': r'\PassOptionsToPackage{hypertexnames=false}{hyperref}',
+    
+    # Single-sided document
+    'classoptions': ',oneside',
+    
+    # Minimal, robust preamble using only standard LaTeX fonts
     'preamble': r'''
-        \usepackage{charter}
-        \usepackage[defaultsans]{lato}
-        \usepackage{inconsolata}
-        \setcounter{tocdepth}{2}
-        \setcounter{secnumdepth}{2}
-        % Reduce spacing
+        % Use standard Computer Modern fonts (always available)
+        % No custom font packages to avoid compatibility issues
+        
+        % Clean section formatting
         \usepackage{titlesec}
-        \titlespacing*{\section}{0pt}{10pt plus 2pt minus 2pt}{5pt plus 2pt minus 2pt}
-        \titlespacing*{\subsection}{0pt}{8pt plus 2pt minus 2pt}{4pt plus 2pt minus 2pt}
-        \titlespacing*{\subsubsection}{0pt}{6pt plus 2pt minus 2pt}{3pt plus 2pt minus 2pt}
-        % Reduce paragraph spacing
-        \setlength{\parskip}{3pt}
-        \setlength{\parsep}{0pt}
-        \setlength{\headsep}{10pt}
-        \setlength{\topskip}{0pt}
-        % Prevent blank pages - these are the key commands
-        \raggedbottom
+        \titleformat{\chapter}[display]
+            {\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{20pt}{\Huge}
+        \titleformat{\section}
+            {\normalfont\Large\bfseries}{\thesection}{1em}{}
+        \titleformat{\subsection}
+            {\normalfont\large\bfseries}{\thesubsection}{1em}{}
+        \titleformat{\subsubsection}
+            {\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
+        
+        % Remove forced page breaks
         \let\cleardoublepage\clearpage
+        
+        % Better spacing
+        \usepackage{setspace}
+        \onehalfspacing
     ''',
+    
+    # Simple, clean title page
     'maketitle': r'''
         \begin{titlepage}
         \centering
-        {\Large\bfseries Sphinx Extension - Filter Tabs Documentation\par}
+        \vspace*{2cm}
+        {\huge\bfseries Sphinx Extension - Filter Tabs Documentation\par}
+        \vspace{1cm}
+        {\Large Aputsiak Niels Janussen\par}
         \vspace{0.5cm}
-        {\large Aputsiak Niels Janussen\par}
+        {\large Version 0.9.1\par}
         \vspace{0.5cm}
-        {\normalsize Version 0.9.0\par}
-        \vspace{0.5cm}
-        {\small\today\par}
+        {\normalsize\today\par}
+        \vfill
         \end{titlepage}
+        \cleardoublepage
     ''',
 }
+
+# LaTeX document settings
+latex_documents = [
+    ('index', 'sphinxextension-filtertabs.tex', 
+     'Sphinx Extension - Filter Tabs Documentation',
+     'Aputsiak Niels Janussen', 'manual'),
+]
 
 # -- Options for filter-tabs extension ---------------------------------------
 filter_tabs_tab_highlight_color = "#d45234"

@@ -37,7 +37,6 @@ jobs:
       run: pytest
 
   # JOB 2: Build and deploy docs, runs only ONCE after ALL tests pass
-  # Note: 'deploy-docs' has the same indentation level as 'test'
   deploy-docs:
     needs: test
     if: github.ref == 'refs/heads/main'
@@ -54,8 +53,18 @@ jobs:
         with:
           python-version: '3.12'
           
-      - name: Install LaTeX distribution
-        run: sudo apt-get update && sudo apt-get install -y texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended latexmk
+      - name: Install comprehensive LaTeX distribution
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            texlive-latex-base \
+            texlive-latex-recommended \
+            texlive-latex-extra \
+            texlive-fonts-recommended \
+            texlive-fonts-extra \
+            texlive-lang-european \
+            latexmk \
+            cm-super
       
       - name: Install documentation dependencies
         run: |
