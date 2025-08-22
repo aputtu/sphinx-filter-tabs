@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath('..'))
 project = 'Sphinx Extension - Filter Tabs'
 copyright = '2025, Aputsiak Niels Janussen'
 author = 'Aputsiak Niels Janussen'
-release = '0.9.2'
+release = '0.9.3'
 
 # -- General configuration ---------------------------------------------------
 extensions = [

@@ -1,10 +1,15 @@
 Changelog
 =========
 
+Version 0.9.3
+-------------
+
+* Reintroduce doc deploy requirements, but now caching them (GitHub)
+
 Version 0.9.2
 -------------
 
-* Removed duplicate IDs in HTML and resulting W3 valida tion errors
+* Removed duplicate IDs in HTML and resulting W3 validation errors
 * Add dev, export, and improved setup scripts
 * Reduced doc deploy requirements from 1GB to 50MB
 
