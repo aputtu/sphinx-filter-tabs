@@ -1,3 +1,6 @@
+
+
+
 name: Tests and Docs Deployment
 
 on:
@@ -36,7 +39,7 @@ jobs:
     - name: Run Tests
       run: pytest
 
-  # JOB 2: Build and deploy docs (HTML only - super fast!)
+  # JOB 2: Build and deploy docs, runs only ONCE after ALL tests pass
   deploy-docs:
     needs: test
     if: github.ref == 'refs/heads/main'
@@ -53,7 +56,15 @@ jobs:
         with:
           python-version: '3.12'
           
-      # No LaTeX installation needed!
+      - name: Install minimal LaTeX with required extras
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base \
+            texlive-latex-recommended \
+            texlive-extra-utils \
+            texlive-latex-extra \
+            latexmk
       
       - name: Install documentation dependencies
         run: |
@@ -61,8 +72,17 @@ jobs:
           pip install -r requirements/docs.txt
           pip install .
           
-      - name: Build HTML documentation only
+      - name: Build documentation in correct order
         run: |
+          # 1. Build LaTeX and compile the PDF
+          sphinx-build -b latex docs docs/_build/latex
+          (cd docs/_build/latex && make)
+
+          # 2. Copy the generated PDF into the source tree
+          mkdir -p docs/_downloads
+          cp docs/_build/latex/*.pdf docs/_downloads/
+          
+          # 3. Build HTML (which now finds the PDF for the :download: role)
           sphinx-build -b html docs docs/_build/html
 
       - name: Upload documentation artifact
