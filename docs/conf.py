@@ -16,22 +16,19 @@ extensions = [
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- HTML output -------------------------------------------------
-# LaTeX settings - Adding 'oneside' and 'a4paper' options
+html_theme = 'sphinx_rtd_theme'
+html_static_path = ['_static']
+
+# -- LaTeX output -------------------------------------------------
+# These settings ensure basic compatibility.
 latex_elements = {
     'papersize': 'a4paper',
     'classoptions': ',oneside',
 }
 
-# LaTeX document settings
+# Define the LaTeX document structure.
 latex_documents = [
     ('index', 'sphinxextension-filtertabs.tex',
-     'Sphinx Extension - Filter Tabs Documentation',
-     'Aputsiak Niels Janussen', 'manual'),
-]
-
-# LaTeX document settings
-latex_documents = [
-    ('index', 'sphinxextension-filtertabs.tex', 
      'Sphinx Extension - Filter Tabs Documentation',
      'Aputsiak Niels Janussen', 'manual'),
 ]
