@@ -16,65 +16,18 @@ extensions = [
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- HTML output -------------------------------------------------
-html_theme = 'sphinx_rtd_theme'
-html_static_path = ['_static']
-
-# LaTeX settings with standard, widely available fonts
+# LaTeX settings - Adding 'oneside' and 'a4paper' options
 latex_elements = {
     'papersize': 'a4paper',
-    'pointsize': '11pt',
-    
-    # Use a simple, standard chapter style
-    'fncychap': r'\usepackage[Sonny]{fncychap}',
-    
-    # Fix hyperref issues
-    'passoptionstopackages': r'\PassOptionsToPackage{hypertexnames=false}{hyperref}',
-    
-    # Single-sided document
     'classoptions': ',oneside',
-    
-    # Minimal, robust preamble using only standard LaTeX fonts
-    'preamble': r'''
-        % Use standard Computer Modern fonts (always available)
-        % No custom font packages to avoid compatibility issues
-        
-        % Clean section formatting
-        \usepackage{titlesec}
-        \titleformat{\chapter}[display]
-            {\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{20pt}{\Huge}
-        \titleformat{\section}
-            {\normalfont\Large\bfseries}{\thesection}{1em}{}
-        \titleformat{\subsection}
-            {\normalfont\large\bfseries}{\thesubsection}{1em}{}
-        \titleformat{\subsubsection}
-            {\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
-        
-        % Remove forced page breaks
-        \let\cleardoublepage\clearpage
-        
-        % Better spacing
-        \usepackage{setspace}
-        \onehalfspacing
-    ''',
-    
-    # Simple, clean title page
-    'maketitle': f'''
-        \\begin{{titlepage}}
-        \\centering
-        \\vspace*{{2cm}}
-        {{ \\huge\\bfseries Sphinx Extension - Filter Tabs Documentation\\par}}
-  
-       \\vspace{{1cm}}
-        {{ \\Large Aputsiak Niels Janussen\\par}}
-        \\vspace{{0.5cm}}
-        {{\\large Version {release}\\par}}
-        \\vspace{{0.5cm}}
-        {{\\normalsize\\today\\par}}
-        \\vfill
-        \\end{{titlepage}}
-        \\cleardoublepage
-    ''',
 }
+
+# LaTeX document settings
+latex_documents = [
+    ('index', 'sphinxextension-filtertabs.tex',
+     'Sphinx Extension - Filter Tabs Documentation',
+     'Aputsiak Niels Janussen', 'manual'),
+]
 
 # LaTeX document settings
 latex_documents = [
