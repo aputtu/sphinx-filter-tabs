@@ -1,6 +1,9 @@
 Usage Example
 =============
 
+Examples
+--------
+
 Here is a live demonstration of the extension.
 
 .. filter-tabs:: Python (default), C++, JavaScript
@@ -41,6 +44,9 @@ Here is a live demonstration of the extension.
                console.log("Hello from JavaScript!");
            }
 
+.. raw:: latex
+
+   \newpage
 
 Nested Tabs
 -----------
