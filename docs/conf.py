@@ -34,6 +34,8 @@ latex_documents = [
 ]
 
 # -- Options for filter-tabs extension ---------------------------------------
+filter_tabs_use_improved_accessibility = True
+
 filter_tabs_tab_highlight_color = "#d45234"
 filter_tabs_border_radius = "4px"
 filter_tabs_debug_mode = True
