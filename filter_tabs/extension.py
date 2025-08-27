@@ -1,5 +1,5 @@
 #
-# extension.py: The core logic for the sphinx-filter-tabs Sphinx extension.
+# extension.py: Updated with simplified syntax and ARIA label support
 #
 
 # --- Imports ---
@@ -11,7 +11,7 @@ import copy
 import shutil
 from pathlib import Path
 from docutils import nodes
-from docutils.parsers.rst import Directive
+from docutils.parsers.rst import Directive, directives
 from sphinx.application import Sphinx
 from sphinx.util import logging
 from sphinx.writers.html import HTML5Translator
@@ -71,13 +71,12 @@ class FilterTabsRenderer:
     Handles the primary logic of converting the parsed directive content
     into a final node structure for both HTML and fallback formats (like LaTeX).
     """
-    def __init__(self, directive: Directive, tab_names: list[str], default_tab: str, temp_blocks: list[nodes.Node]):
-        """Initializes the renderer with all necessary context from the directive."""
+    def __init__(self, directive: Directive, tab_data: list[dict], general_content: list[nodes.Node]):
+        """Initializes the renderer with parsed tab data and general content."""
         self.directive: Directive = directive
         self.env: BuildEnvironment = directive.state.document.settings.env
-        self.tab_names: list[str] = tab_names
-        self.default_tab: str = default_tab
-        self.temp_blocks: list[nodes.Node] = temp_blocks
+        self.tab_data: list[dict] = tab_data  # List of dicts with 'name', 'is_default', 'aria_label', 'content'
+        self.general_content: list[nodes.Node] = general_content
 
     def render_html(self) -> list[nodes.Node]:
         """Constructs the complete, W3C valid, and ARIA-compliant docutils node tree."""
@@ -108,18 +107,18 @@ class FilterTabsRenderer:
 
         # Build the semantic structure using fieldset and a hidden legend.
         fieldset = FieldsetNode()
+        tab_names = [tab['name'] for tab in self.tab_data]
         legend = LegendNode()
-        legend += nodes.Text(f"Filter by: {', '.join(self.tab_names)}")
+        legend += nodes.Text(f"Filter by: {', '.join(tab_names)}")
         fieldset += legend
         
         # --- CSS Generation ---
         css_rules = []
-        for i, tab_name in enumerate(self.tab_names):
-            # FIX 1: Use position-based IDs instead of hash-based
+        for i, tab in enumerate(self.tab_data):
             radio_id = f"{group_id}-tab-{i}"
             panel_id = f"{radio_id}-panel"
             css_rules.append(
-                f".{SFT_TAB_BAR}:has(#{radio_id}:checked) ~ .sft-content > #{panel_id} {{ display: block; }}"
+                f".{SFT_TAB_BAR}:has(#{radio_id}:checked) ~ .{SFT_CONTENT} > #{panel_id} {{ display: block; }}"
             )
         
         # Write the dynamic CSS to a temporary file and add it to the build.
@@ -138,56 +137,54 @@ class FilterTabsRenderer:
         content_area = ContainerNode(classes=[SFT_CONTENT])
         fieldset += content_area
 
-        # Map tab names to their content blocks for easy lookup.
-        content_map = {block['filter-name']: block.children for block in self.temp_blocks}
+        # Determine default tab
+        default_index = next((i for i, tab in enumerate(self.tab_data) if tab['is_default']), 0)
         
-        # 1. Create all radio buttons and labels - NO ARIA on labels
-        for i, tab_name in enumerate(self.tab_names):
-            # FIX 1: Use position-based IDs
+        # 1. Create all radio buttons and labels
+        for i, tab in enumerate(self.tab_data):
             radio_id = f"{group_id}-tab-{i}"
             panel_id = f"{radio_id}-panel"
             
-            # The radio button is for state management.
+            # The radio button for state management
             radio = RadioInputNode(type='radio', name=group_id, ids=[radio_id])
             
-            is_default = (self.default_tab == tab_name) or (i == 0 and not self.default_tab)
-            if is_default:
+            # Add aria-label if provided
+            if tab.get('aria_label'):
+                radio['aria-label'] = tab['aria_label']
+            
+            if i == default_index:
                 radio['checked'] = 'checked'
             tab_bar += radio
 
-            # FIX 2: Remove ALL ARIA attributes from labels - just use for_id
-            # FIX 3: Don't add IDs to labels - they don't need them
+            # Label without ARIA attributes
             label = LabelNode(for_id=radio_id)
-            label += nodes.Text(tab_name)
+            label += nodes.Text(tab['name'])
             tab_bar += label
 
-        # 2. Create all tab panels - panels can have ARIA attributes
-        all_tab_names = ["General"] + self.tab_names
-        for i, tab_name in enumerate(all_tab_names):
-            if tab_name == "General":
-                # General panel doesn't correspond to a specific tab control
-                panel = PanelNode(
-                    classes=[SFT_PANEL], 
-                    **{'data-filter': tab_name}
-                )
-            else:
-                # FIX 1: Use position-based IDs for panels too
-                tab_index = self.tab_names.index(tab_name)
-                radio_id = f"{group_id}-tab-{tab_index}"
-                panel_id = f"{radio_id}-panel"
-                
-                # Panels can have ARIA attributes for screen readers
-                panel_attrs = {
-                    'classes': [SFT_PANEL],
-                    'ids': [panel_id],
-                    'role': 'tabpanel',
-                    'aria-labelledby': radio_id,
-                    'tabindex': '0'
-                }
-                panel = PanelNode(**panel_attrs)
+        # 2. Create the general panel if there's general content
+        if self.general_content:
+            general_panel = PanelNode(
+                classes=[SFT_PANEL], 
+                **{'data-filter': 'General'}
+            )
+            general_panel.extend(copy.deepcopy(self.general_content))
+            content_area += general_panel
 
-            if tab_name in content_map:
-                panel.extend(copy.deepcopy(content_map[tab_name]))
+        # 3. Create all tab panels
+        for i, tab in enumerate(self.tab_data):
+            radio_id = f"{group_id}-tab-{i}"
+            panel_id = f"{radio_id}-panel"
+            
+            # Panels can have ARIA attributes for screen readers
+            panel_attrs = {
+                'classes': [SFT_PANEL],
+                'ids': [panel_id],
+                'role': 'tabpanel',
+                'aria-labelledby': radio_id,
+                'tabindex': '0'
+            }
+            panel = PanelNode(**panel_attrs)
+            panel.extend(copy.deepcopy(tab['content']))
             content_area += panel
 
         container.children = [fieldset]
@@ -196,99 +193,146 @@ class FilterTabsRenderer:
     def render_fallback(self) -> list[nodes.Node]:
         """Renders content as a series of simple admonitions for non-HTML builders (e.g., LaTeX/PDF)."""
         output_nodes: list[nodes.Node] = []
-        content_map = {block['filter-name']: block.children for block in self.temp_blocks}
-        # "General" content is rendered first, without a title.
-        if "General" in content_map:
-            output_nodes.extend(copy.deepcopy(content_map["General"]))
-        # Each specific tab's content is placed inside a titled admonition block.
-        for tab_name in self.tab_names:
-            if tab_name in content_map:
-                admonition = nodes.admonition()
-                admonition += nodes.title(text=tab_name)
-                admonition.extend(copy.deepcopy(content_map[tab_name]))
-                output_nodes.append(admonition)
+        
+        # Add general content first if it exists
+        if self.general_content:
+            output_nodes.extend(copy.deepcopy(self.general_content))
+        
+        # Add each tab's content in a titled admonition
+        for tab in self.tab_data:
+            admonition = nodes.admonition()
+            admonition += nodes.title(text=tab['name'])
+            admonition.extend(copy.deepcopy(tab['content']))
+            output_nodes.append(admonition)
+        
         return output_nodes
-
-    @staticmethod
-    def _css_escape(name: str) -> str:
-        """
-        Generates a deterministic, CSS-safe identifier from any given tab name string.
-        """
-        return str(uuid.uuid5(_CSS_NAMESPACE, name.strip().lower()))
 
 
 class TabDirective(Directive):
-    """Handles the `.. tab::` directive, capturing its content."""
+    """Handles the `.. tab::` directive, capturing its content and options."""
     has_content = True
     required_arguments = 1
     final_argument_whitespace = True
+    option_spec = {
+        'aria-label': directives.unchanged,  # New option for ARIA label
+    }
 
     def run(self) -> list[nodes.Node]:
         """
-        Parses the content of a tab and stores it in a temporary container.
+        Parses the content of a tab and stores it with metadata in a temporary container.
         """
         env = self.state.document.settings.env
+        
         # Ensure `tab` is only used inside `filter-tabs`.
         if not hasattr(env, 'sft_context') or not env.sft_context:
             raise self.error("`tab` can only be used inside a `filter-tabs` directive.")
-        # Store the tab name and parsed content in a temporary node.
+        
+        # Parse the tab name and check for (default) marker
+        tab_arg = self.arguments[0].strip()
+        is_default = False
+        tab_name = tab_arg
+        
+        # Check for (default) marker
+        match = re.match(r"^(.*?)\s*\(\s*default\s*\)$", tab_arg, re.IGNORECASE)
+        if match:
+            tab_name = match.group(1).strip()
+            is_default = True
+        
+        # Store the tab data in a temporary node
         container = nodes.container(classes=[SFT_TEMP_PANEL])
-        container['filter-name'] = self.arguments[0].strip()
+        container['filter_name'] = tab_name
+        container['is_default'] = is_default
+        container['aria_label'] = self.options.get('aria-label', None)
+        
         self.state.nested_parse(self.content, self.content_offset, container)
         return [container]
 
 
 class FilterTabsDirective(Directive):
-    """Handles the main `.. filter-tabs::` directive."""
+    """Handles the main `.. filter-tabs::` directive with simplified syntax."""
     has_content = True
-    required_arguments = 1
-    final_argument_whitespace = True
+    required_arguments = 0  # No longer requires arguments
+    optional_arguments = 1  # Allow optional arguments for backward compatibility
 
     def run(self) -> list[nodes.Node]:
         """
-        Parses the list of tabs, manages the parsing context for its content,
-        and delegates the final rendering to the FilterTabsRenderer.
+        Parses content, separating general content from tab content,
+        and delegates rendering to FilterTabsRenderer.
         """
         env = self.state.document.settings.env
         
-        # Set a context flag to indicate that we are inside a filter-tabs block.
+        # Set a context flag to indicate we're inside a filter-tabs block
         if not hasattr(env, 'sft_context'):
             env.sft_context = []
         env.sft_context.append(True)
 
-        # Parse the content of the directive to find all `.. tab::` blocks.
+        # Parse the content of the directive
         temp_container = nodes.container()
         self.state.nested_parse(self.content, self.content_offset, temp_container)
         env.sft_context.pop()
 
-        # Find all the temporary panel nodes created by the TabDirective.
-        temp_blocks = temp_container.findall(lambda n: isinstance(n, nodes.Element) and SFT_TEMP_PANEL in n.get('classes', []))
-        if not temp_blocks:
-            self.error("No `.. tab::` directives found inside `filter-tabs`. Content will not be rendered.")
-            return []
-
-        # Parse the tab names from the directive's arguments.
-        tabs_raw = [t.strip() for t in self.arguments[0].split(',')]
-        tab_names_only = [re.sub(r'\s*\(\s*default\s*\)$', '', t, re.IGNORECASE).strip() for t in tabs_raw]
-
-        if len(set(tab_names_only)) != len(tab_names_only):
-            raise self.error(f"Duplicate tab names found: {tab_names_only}")
-
-        # Identify the default tab.
-        default_tab, tab_names = "", []
-        for tab in tabs_raw:
-            match = re.match(r"^(.*?)\s*\(\s*default\s*\)$", tab, re.IGNORECASE)
-            tab_name = match.group(1).strip() if match else tab
-            if match and not default_tab:
-                default_tab = tab_name
-            tab_names.append(tab_name)
-
-        # If no default is specified, the first tab becomes the default.
-        if not default_tab and tab_names:
-            default_tab = tab_names[0]
-
-        # Instantiate the renderer and call the appropriate render method based on the builder.
-        renderer = FilterTabsRenderer(self, tab_names, default_tab, temp_blocks)
+        # Separate general content from tab panels
+        general_content = []
+        tab_data = []
+        
+        for node in temp_container.children:
+            if isinstance(node, nodes.Element) and SFT_TEMP_PANEL in node.get('classes', []):
+                # This is a tab panel
+                tab_data.append({
+                    'name': node['filter_name'],
+                    'is_default': node.get('is_default', False),
+                    'aria_label': node.get('aria_label'),
+                    'content': node.children
+                })
+            else:
+                # This is general content
+                general_content.append(node)
+        
+        # Handle backward compatibility: if arguments were provided, use old behavior
+        if self.arguments:
+            logger.warning(
+                "Deprecated: Passing tab names as arguments to filter-tabs is deprecated. "
+                "Define tabs using .. tab:: directives instead."
+            )
+            # Parse legacy format
+            tabs_raw = [t.strip() for t in self.arguments[0].split(',')]
+            legacy_tab_names = []
+            legacy_default = None
+            
+            for tab in tabs_raw:
+                match = re.match(r"^(.*?)\s*\(\s*default\s*\)$", tab, re.IGNORECASE)
+                if match:
+                    tab_name = match.group(1).strip()
+                    legacy_tab_names.append(tab_name)
+                    if not legacy_default:
+                        legacy_default = tab_name
+                else:
+                    legacy_tab_names.append(tab)
+            
+            # Match legacy tab names with parsed tab data
+            for tab_name in legacy_tab_names:
+                matching_tab = next((t for t in tab_data if t['name'] == tab_name), None)
+                if not matching_tab:
+                    # Create empty tab if not found
+                    tab_data.append({
+                        'name': tab_name,
+                        'is_default': tab_name == legacy_default,
+                        'aria_label': None,
+                        'content': []
+                    })
+                elif legacy_default and tab_name == legacy_default:
+                    matching_tab['is_default'] = True
+        
+        # If no tabs were defined, error
+        if not tab_data:
+            raise self.error("No `.. tab::` directives found inside `filter-tabs`. Content will not be rendered.")
+        
+        # Ensure at least one default tab
+        if not any(tab['is_default'] for tab in tab_data):
+            tab_data[0]['is_default'] = True
+        
+        # Instantiate the renderer and call the appropriate render method
+        renderer = FilterTabsRenderer(self, tab_data, general_content)
         if env.app.builder.name == 'html':
             return renderer.render_html()
         else:
@@ -359,9 +403,8 @@ def depart_legend_node(self: HTML5Translator, node: LegendNode) -> None:
 
 def visit_radio_input_node(self: HTML5Translator, node: RadioInputNode) -> None:
     attrs = _get_html_attrs(node)
-    # Don't manually add 'id' - starttag handles 'ids' automatically
-    # Include other important attributes
-    for key in ['type', 'name', 'checked']:
+    # Include important attributes
+    for key in ['type', 'name', 'checked', 'aria-label']:
         if key in node.attributes:
             attrs[key] = node[key]
     self.body.append(self.starttag(node, 'input', **attrs))
@@ -374,7 +417,6 @@ def visit_label_node(self: HTML5Translator, node: LabelNode) -> None:
     # Ensure the 'for' attribute is set correctly
     if 'for_id' in node.attributes:
         attrs['for'] = node['for_id']
-    # FIX: Don't add any ARIA attributes or IDs to labels
     self.body.append(self.starttag(node, 'label', **attrs))
 
 def depart_label_node(self: HTML5Translator, node: LabelNode) -> None:
@@ -440,7 +482,7 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     app.add_config_value('filter_tabs_collapsible_enabled', True, 'html', [bool])
     app.add_config_value('filter_tabs_collapsible_accent_color', '#17a2b8', 'html', [str])
     
-    # NEW: Add accessibility configuration options
+    # Accessibility configuration options
     app.add_config_value('filter_tabs_keyboard_navigation', True, 'html', [bool])
     app.add_config_value('filter_tabs_announce_changes', True, 'html', [bool])
 

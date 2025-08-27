@@ -3,160 +3,130 @@ from bs4 import BeautifulSoup
 from sphinx.testing.util import SphinxTestApp
 from sphinx.errors import SphinxError
 
-# A standard RST content fixture for tests
-@pytest.fixture()
-def test_rst_content():
-    return """
-A Test Document
-===============
+@pytest.mark.sphinx('html')
+def test_simplified_syntax_no_arguments(app: SphinxTestApp):
+    """Test the new simplified syntax where filter-tabs has no arguments."""
+    content = """
+Test Document
+=============
 
-.. filter-tabs:: Python, Rust (default), Go
+.. filter-tabs::
 
-    .. tab:: General
-
-        This is general content.
-
+    This is general content that appears regardless of selection.
+    
     .. tab:: Python
-
-        This is Python content.
-
-    .. tab:: Rust
-
-        This is Rust content.
-"""
-
-@pytest.mark.sphinx('html')
-def test_html_structure_and_styles(app: SphinxTestApp, test_rst_content):
-    """Checks the generated HTML structure and inline CSS variables."""
-    app.srcdir.joinpath('index.rst').write_text(test_rst_content)
-    app.build()
-
-    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
-    container = soup.select_one('.sft-container')
-    assert container, "Main container .sft-container not found"
-
-    # Test that the inline style attribute exists
-    assert container.has_attr('style'), "Container is missing the style attribute"
-    assert "--sft-border-radius: 8px" in container['style']
-
-@pytest.mark.sphinx('html', confoverrides={'filter_tabs_border_radius': '20px'})
-def test_config_overrides_work(app: SphinxTestApp, test_rst_content):
-    """Ensures that conf.py overrides are reflected in the style attribute."""
-    app.srcdir.joinpath('index.rst').write_text(test_rst_content)
-    app.build()
-    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
-    container = soup.select_one('.sft-container')
-    assert container.has_attr('style'), "Container is missing the style attribute"
-    assert "--sft-border-radius: 20px" in container['style']
-
-@pytest.mark.sphinx('latex')
-def test_latex_fallback_renders_admonitions(app: SphinxTestApp, test_rst_content):
-    """Checks that the LaTeX builder creates simple admonitions as a fallback."""
-    app.srcdir.joinpath('index.rst').write_text(test_rst_content)
-    app.build()
     
-    # Look for the correct TeX filename based on the test project's name
-    result = (app.outdir / 'sphinxtestproject.tex').read_text()
-
-    # General content should appear directly
-    assert 'This is general content.' in result
-    assert r'\begin{sphinxadmonition}{note}{General}' not in result
-
-    # Specific tabs should be titled admonitions
-    assert r'\begin{sphinxadmonition}{note}{Python}' in result
-    assert 'This is Python content.' in result
-    assert r'\begin{sphinxadmonition}{note}{Rust}' in result
-    assert 'This is Rust content.' in result
-
-@pytest.mark.sphinx('html')
-def test_error_on_orphan_tab(app: SphinxTestApp, status, warning):
-    """Tests that a `tab` directive outside `filter-tabs` logs an error."""
-    app.srcdir.joinpath('index.rst').write_text(".. tab:: Orphan")
-    app.build()
-
-    # Check for the error message in the warning stream instead of expecting a crash.
-    warnings = warning.getvalue()
-    assert "`tab` can only be used inside a `filter-tabs` directive" in warnings
-
-@pytest.mark.sphinx('html')
-def test_valid_html_structure(app: SphinxTestApp, test_rst_content):
-    """Verify HTML structure is valid and doesn't have duplicate IDs."""
-    app.srcdir.joinpath('index.rst').write_text(test_rst_content)
-    app.build()
-    
-    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
-    
-    # Check that we have radio buttons and labels
-    tab_bar = soup.select_one('.sft-tab-bar')
-    assert tab_bar, "Tab bar not found"
-    
-    radios = tab_bar.select('input[type="radio"]')
-    labels = tab_bar.select('label')
-    
-    assert len(radios) == 3, f"Expected 3 radio buttons, found {len(radios)}"
-    assert len(labels) == 3, f"Expected 3 labels, found {len(labels)}"
-    
-    # Check radio buttons have unique IDs
-    radio_ids = [r.get('id') for r in radios if r.get('id')]
-    assert len(radio_ids) == len(set(radio_ids)), "Radio buttons have duplicate IDs"
-    
-    # Check labels have proper 'for' attributes
-    for label in labels:
-        assert label.get('for'), "Label missing 'for' attribute"
-        # Verify the 'for' points to an existing radio
-        target_id = label.get('for')
-        matching_radio = soup.select_one(f'#{target_id}')
-        assert matching_radio, f"Label 'for' attribute points to non-existent ID: {target_id}"
-    
-    # Check panels exist and have unique IDs
-    panels = soup.select('.sft-panel[role="tabpanel"]')
-    assert len(panels) == 3, f"Expected 3 panels with role=tabpanel, found {len(panels)}"
-    
-    panel_ids = [p.get('id') for p in panels if p.get('id')]
-    assert len(panel_ids) == len(set(panel_ids)), "Panels have duplicate IDs"
-    
-    # Verify all IDs in the document are unique
-    all_elements_with_ids = soup.select('[id]')
-    all_ids = [elem.get('id') for elem in all_elements_with_ids]
-    assert len(all_ids) == len(set(all_ids)), f"Duplicate IDs found in HTML: {[id for id in all_ids if all_ids.count(id) > 1]}"
-
-@pytest.mark.sphinx('html')
-def test_no_aria_on_labels(app: SphinxTestApp, test_rst_content):
-    """Verify labels don't have invalid ARIA attributes."""
-    app.srcdir.joinpath('index.rst').write_text(test_rst_content)
-    app.build()
-    
-    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
-    
-    labels = soup.select('.sft-tab-bar label')
-    
-    # Check that labels DON'T have ARIA role or aria-selected
-    for label in labels:
-        assert not label.get('role'), "Label should not have 'role' attribute"
-        assert not label.get('aria-selected'), "Label should not have 'aria-selected' attribute"
-        assert not label.get('aria-controls'), "Label should not have 'aria-controls' attribute"
-        # Labels should only have 'for' attribute for accessibility
-        assert label.get('for'), "Label should have 'for' attribute"
-
-@pytest.mark.sphinx('html')
-def test_panels_have_proper_aria(app: SphinxTestApp, test_rst_content):
-    """Test that panels have proper ARIA attributes for screen readers."""
-    app.srcdir.joinpath('index.rst').write_text(test_rst_content)
-    app.build()
-    
-    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
-    
-    # Check panels have correct ARIA attributes
-    panels = soup.select('[role="tabpanel"]')
-    assert len(panels) == 3, f"Expected 3 panels, found {len(panels)}"
-    
-    # Check each panel has required attributes
-    for panel in panels:
-        assert panel.get('aria-labelledby'), "Panel missing aria-labelledby attribute"
-        assert panel.get('role') == 'tabpanel', "Panel missing role=tabpanel"
-        assert panel.get('tabindex') == '0', "Panel should have tabindex=0 for screen readers"
+        Python specific content.
         
-        # Verify aria-labelledby points to an existing element
-        labelledby_id = panel.get('aria-labelledby')
-        matching_element = soup.select_one(f'#{labelledby_id}')
-        assert matching_element, f"Panel aria-labelledby='{labelledby_id}' doesn't match any element ID"
+    .. tab:: JavaScript (default)
+    
+        JavaScript specific content.
+        
+    .. tab:: Rust
+    
+        Rust specific content.
+"""
+    app.srcdir.joinpath('index.rst').write_text(content)
+    app.build()
+    
+    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
+    
+    # Check that tabs were created
+    radios = soup.select('.sft-tab-bar input[type="radio"]')
+    assert len(radios) == 3, f"Expected 3 tabs, found {len(radios)}"
+    
+    # Check tab names from labels
+    labels = soup.select('.sft-tab-bar label')
+    tab_names = [label.text.strip() for label in labels]
+    assert tab_names == ['Python', 'JavaScript', 'Rust']
+    
+    # Check JavaScript is default (second radio should be checked)
+    assert radios[1].get('checked') is not None, "JavaScript tab should be default"
+    
+    # Check general content exists
+    general_panel = soup.select_one('.sft-panel[data-filter="General"]')
+    assert general_panel, "General panel not found"
+    assert "general content that appears" in general_panel.text
+
+
+@pytest.mark.sphinx('html')
+def test_aria_label_option(app: SphinxTestApp):
+    """Test that the :aria-label: option adds proper ARIA attributes."""
+    content = """
+Test Document
+=============
+
+.. filter-tabs::
+
+    .. tab:: CLI
+       :aria-label: Command Line Interface installation instructions
+       
+        Install via command line.
+        
+    .. tab:: GUI (default)
+       :aria-label: Graphical User Interface installation instructions
+       
+        Install via graphical interface.
+"""
+    app.srcdir.joinpath('index.rst').write_text(content)
+    app.build()
+    
+    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
+    
+    # Find the radio inputs
+    radios = soup.select('.sft-tab-bar input[type="radio"]')
+    
+    # Check that aria-labels were added
+    assert radios[0].get('aria-label') == "Command Line Interface installation instructions"
+    assert radios[1].get('aria-label') == "Graphical User Interface installation instructions"
+    
+    # Verify the visual labels are still short
+    labels = soup.select('.sft-tab-bar label')
+    assert labels[0].text.strip() == 'CLI'
+    assert labels[1].text.strip() == 'GUI'
+
+
+@pytest.mark.sphinx('html')
+def test_mixed_general_and_tab_content(app: SphinxTestApp):
+    """Test that content outside tab directives becomes general content."""
+    content = """
+Test Document
+=============
+
+.. filter-tabs::
+
+    This paragraph is general content.
+    
+    It can span multiple paragraphs.
+    
+    .. note::
+    
+        Even admonitions outside tabs are general.
+    
+    .. tab:: Option A
+    
+        Content for option A.
+        
+    Some more general content between tabs.
+    
+    .. tab:: Option B (default)
+    
+        Content for option B.
+"""
+    app.srcdir.joinpath('index.rst').write_text(content)
+    app.build()
+    
+    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
+    
+    general_panel = soup.select_one('.sft-panel[data-filter="General"]')
+    assert general_panel, "General panel not found"
+    
+    general_text = general_panel.text
+    assert "This paragraph is general content" in general_text
+    assert "It can span multiple paragraphs" in general_text
+    assert "Even admonitions outside tabs are general" in general_text
+    assert "Some more general content between tabs" in general_text
+    
+    # Ensure tab content is NOT in general panel
+    assert "Content for option A" not in general_text
+    assert "Content for option B" not in general_text

@@ -1,6 +1,16 @@
 Changelog
 =========
 
+**Version 1.0.0** (Upcoming)
+
+* **BREAKING CHANGE**: Simplified directive syntax - ``filter-tabs`` no longer requires tab names as arguments
+* **NEW**: Tab names and defaults are now defined directly in ``.. tab::`` directives
+* **NEW**: Content outside ``.. tab::`` blocks automatically becomes general content
+* **NEW**: Added ``:aria-label:`` option to ``tab`` directive for enhanced accessibility
+* **ENHANCEMENT**: Improved screen reader support with customizable ARIA labels
+* **DEPRECATION**: Old syntax with tab names as arguments still works but logs deprecation warning
+* Fixed CSS selector bug that referenced ``.sft-content`` without using constant
+
 **Version 0.9.3**
 
 * Reintroduce doc deploy requirements, but now caching them (GitHub)
