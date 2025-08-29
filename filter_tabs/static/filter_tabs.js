@@ -11,7 +11,7 @@
         const containers = document.querySelectorAll('.sft-container');
         
         containers.forEach(container => {
-            const tabBar = container.querySelector('.sft-tab-bar');
+            const tabBar = container.querySelector('.sft-radio-group');
             if (!tabBar) return;
             
             const radios = tabBar.querySelectorAll('input[type="radio"]');

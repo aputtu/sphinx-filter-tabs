@@ -1,8 +1,12 @@
 # filter_tabs/extension.py
+"""
+Core extension module for sphinx-filter-tabs.
+
+This file registers the directives, custom nodes, and connects Sphinx
+event handlers.
+"""
 
 from __future__ import annotations
-from .renderer import FilterTabsRenderer
-import re
 import copy
 import shutil
 from pathlib import Path
@@ -14,6 +18,14 @@ from sphinx.writers.html import HTML5Translator
 
 from typing import TYPE_CHECKING, Any, Dict, List
 from . import __version__
+from .models import TabData, FilterTabsConfig
+from .parsers import TabArgumentParser, TabDataValidator
+from .renderer import FilterTabsRenderer
+from .nodes import (
+    ContainerNode, FieldsetNode, LegendNode, RadioInputNode,
+    LabelNode, PanelNode, DetailsNode, SummaryNode
+)
+
 
 if TYPE_CHECKING:
     from sphinx.environment import BuildEnvironment
@@ -25,108 +37,110 @@ CUSTOM_ARROW = "custom-arrow"
 
 logger = logging.getLogger(__name__)
 
-# --- Custom Nodes ---
-class ContainerNode(nodes.General, nodes.Element): pass
-class FieldsetNode(nodes.General, nodes.Element): pass
-class LegendNode(nodes.General, nodes.Element): pass
-class RadioInputNode(nodes.General, nodes.Element): pass
-class LabelNode(nodes.General, nodes.Element): pass
-class PanelNode(nodes.General, nodes.Element): pass
-class DetailsNode(nodes.General, nodes.Element): pass
-class SummaryNode(nodes.General, nodes.Element): pass
-
 
 class TabDirective(Directive):
-    """Handles the `.. tab::` directive, capturing its content and options."""
+    """
+    Handles the `.. tab::` directive, capturing its content and options.
+    Now uses TabArgumentParser for cleaner parsing logic.
+    """
     has_content = True
     required_arguments = 1
     final_argument_whitespace = True
     option_spec = {'aria-label': directives.unchanged}
 
     def run(self) -> list[nodes.Node]:
+        """Process the tab directive and return container node."""
         env = self.state.document.settings.env
+        
+        # Validate context
         if not hasattr(env, 'sft_context') or not env.sft_context:
             raise self.error("`tab` can only be used inside a `filter-tabs` directive.")
         
-        # Get ONLY the first argument line, not the content
-        tab_arg = self.arguments[0].strip()
+        # Parse tab argument using dedicated parser
+        try:
+            tab_name, is_default = TabArgumentParser.parse(self.arguments[0])
+        except ValueError as e:
+            raise self.error(f"Invalid tab argument: {e}")
         
-        # Split by newlines and take only the first line (the actual argument)
-        tab_lines = tab_arg.split('\n')
-        first_line = tab_lines[0].strip()
-        
-        is_default = False
-        tab_name = first_line
-        
-        # Parse (default) correctly from the first line only
-        match = re.match(r"^(.*?)\s*\(\s*default\s*\)$", first_line, re.IGNORECASE)
-        if match:
-            tab_name = match.group(1).strip()  # Remove (default) from name
-            is_default = True
-        
+        # Create container with parsed data
         container = nodes.container(classes=["sft-temp-panel"])
-        container['filter_name'] = tab_name  # Should be clean name only
+        container['filter_name'] = tab_name
         container['is_default'] = is_default
         container['aria_label'] = self.options.get('aria-label', None)
         
-        # Parse the content separately
+        # Parse the content
         self.state.nested_parse(self.content, self.content_offset, container)
         
         return [container]
 
 
 class FilterTabsDirective(Directive):
-    """Handles the main `.. filter-tabs::` directive."""
+    """
+    Handles the main `.. filter-tabs::` directive.
+    
+    Now uses TabData dataclass and validation.
+    """
     has_content = True
     required_arguments = 0
     optional_arguments = 0
 
     def run(self) -> list[nodes.Node]:
+        """Process the filter-tabs directive."""
         env = self.state.document.settings.env
         
+        # Set up context
         if not hasattr(env, 'sft_context'):
             env.sft_context = []
         env.sft_context.append(True)
 
+        # Parse content
         temp_container = nodes.container()
         self.state.nested_parse(self.content, self.content_offset, temp_container)
         
         env.sft_context.pop()
 
+        # Separate general content from tabs using TabData
         general_content = []
-        tab_data = []
+        tab_data_list: List[TabData] = []
         
         for node in temp_container.children:
             if isinstance(node, nodes.Element) and "sft-temp-panel" in node.get('classes', []):
-                # Get the stored attributes from TabDirective
-                filter_name = node.get('filter_name', 'Unknown')
-                is_default = node.get('is_default', False)
-                aria_label = node.get('aria_label', None)
-                
-                tab_data.append({
-                    'name': filter_name,
-                    'is_default': is_default,
-                    'aria_label': aria_label,
-                    'content': list(node.children)
-                })
+                # Create TabData object instead of dictionary
+                tab_data = TabData(
+                    name=node.get('filter_name', 'Unknown'),
+                    is_default=node.get('is_default', False),
+                    aria_label=node.get('aria_label', None),
+                    content=list(node.children)
+                )
+                tab_data_list.append(tab_data)
             else:
                 general_content.append(node)
         
-        if not tab_data:
-            raise self.error("No `.. tab::` directives found inside `filter-tabs`.")
+        # Validate tabs
+        try:
+            TabDataValidator.validate_tabs(tab_data_list)
+        except ValueError as e:
+            raise self.error(str(e))
         
-        # Only set first tab as default if NO tab has is_default=True
-        default_tabs = [i for i, tab in enumerate(tab_data) if tab['is_default']]
+        # Set first tab as default if none specified
+        if not any(tab.is_default for tab in tab_data_list):
+            tab_data_list[0].is_default = True
         
-        if not default_tabs:
-            tab_data[0]['is_default'] = True
+        # Create renderer with type-safe data
+        renderer = FilterTabsRenderer(self, tab_data_list, general_content)
         
-        renderer = FilterTabsRenderer(self, tab_data, general_content)
-        return renderer.render_html() if env.app.builder.name == 'html' else renderer.render_fallback()
+        # Render based on builder
+        if env.app.builder.name == 'html':
+            return renderer.render_html()
+        else:
+            return renderer.render_fallback()
+
 
 def setup_collapsible_admonitions(app: Sphinx, doctree: nodes.document, docname: str):
     """Convert admonitions with 'collapsible' class to details/summary elements."""
-    if not app.config.filter_tabs_collapsible_enabled or app.builder.name != 'html':
+    config = FilterTabsConfig.from_sphinx_config(app.config)
+    
+    if not config.collapsible_enabled or app.builder.name != 'html':
         return
         
     for node in list(doctree.findall(nodes.admonition)):
@@ -166,7 +180,7 @@ def _get_html_attrs(node: nodes.Element) -> Dict[str, Any]:
     return attrs
 
 
-# --- HTML Visitor Functions ---
+# --- HTML Visitor Functions (unchanged) ---
 def visit_container_node(self: HTML5Translator, node: ContainerNode) -> None:
     self.body.append(self.starttag(node, 'div', **_get_html_attrs(node)))
 
@@ -190,7 +204,7 @@ def depart_legend_node(self: HTML5Translator, node: LegendNode) -> None:
 
 def visit_radio_input_node(self: HTML5Translator, node: RadioInputNode) -> None:
     attrs = _get_html_attrs(node)
-    for key in ['type', 'name', 'checked', 'aria-label', 'aria-describedby']:
+    for key in ['type', 'name', 'checked', 'aria-label']:
         if key in node.attributes:
             attrs[key] = node[key]
     self.body.append(self.starttag(node, 'input', **attrs))

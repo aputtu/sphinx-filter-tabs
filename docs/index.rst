@@ -27,7 +27,10 @@ This Sphinx extension provides a robust, accessible, and JavaScript-free way to 
 You can find the project's source code on the `GitHub repository <https://github.com/aputtu/sphinx-filter-tabs>`_.
 You can also download this documentation as a :download:`PDF file <_downloads/sphinxextension-filtertabs.pdf>`.
 
+.. only:: latex
 
+    Please visit `project webpage for live version <https://aputtu.github.io/sphinx-filter-tabs/>`_.
+    In the examples provided in the PDF, all tabs gets listed one by one.
 
 .. include:: _installation.rst
 .. include:: _usage.rst

@@ -1,5 +1,12 @@
 # Sphinx Filter Tabs Extension
 
+[![Tests and Docs Deployment](https://github.com/aputtu/sphinx-filter-tabs/actions/workflows/test.yml/badge.svg)](https://github.com/aputtu/sphinx-filter-tabs/actions/workflows/test.yml)
+[![PyPI version](https://img.shields.io/pypi/v/sphinx-filter-tabs.svg)](https://pypi.org/project/sphinx-filter-tabs/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/sphinx-filter-tabs.svg)](https://pypi.org/project/sphinx-filter-tabs/)
+[![PyPI - License](https://img.shields.io/pypi/l/sphinx-filter-tabs.svg)](https://github.com/aputtu/sphinx-filter-tabs/blob/main/LICENSE)
+
+A robust Sphinx extension for creating accessible, JavaScript-free, filterable content tabs.
+
 A robust Sphinx extension for creating accessible, JavaScript-free, filterable content tabs.
 
 **📖 View extension and documentation at: https://aputtu.github.io/sphinx-filter-tabs/**

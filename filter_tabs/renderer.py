@@ -1,6 +1,9 @@
 # filter_tabs/renderer.py
 """
-Simplified FilterTabsRenderer with only improved accessibility implementation.
+Renders the HTML and fallback output for the filter-tabs directive.
+
+This module contains the FilterTabsRenderer class which is responsible for
+converting the collected tab data into a final doctree structure.
 """
 
 from __future__ import annotations
@@ -10,6 +13,11 @@ from pathlib import Path
 from docutils import nodes
 from sphinx.util import logging
 from typing import TYPE_CHECKING, Any, Dict, List
+
+from .models import TabData, FilterTabsConfig, IDGenerator
+from .parsers import ContentTypeInferrer
+from .nodes import ContainerNode, FieldsetNode, LegendNode, RadioInputNode, LabelNode, PanelNode
+
 
 if TYPE_CHECKING:
     from sphinx.application import Sphinx
@@ -30,121 +38,66 @@ SFT_PANEL = "sft-panel"
 class FilterTabsRenderer:
     """
     Renders filter tabs with improved accessibility implementation.
+    
+    Now uses type-safe TabData objects and centralized ID generation.
     """
     
-    def __init__(self, directive: Directive, tab_data: List[Dict], general_content: List[nodes.Node]):
+    def __init__(self, directive: Directive, tab_data: List[TabData], general_content: List[nodes.Node]):
+        """
+        Initialize the renderer.
+        
+        Args:
+            directive: The FilterTabsDirective instance
+            tab_data: List of TabData objects containing tab information
+            general_content: List of nodes for general content
+        """
         self.directive = directive
         self.env: BuildEnvironment = directive.state.document.settings.env
         self.app = self.env.app
         self.tab_data = tab_data
         self.general_content = general_content
         
-        # Generate unique group ID
+        # Load configuration
+        self.config = FilterTabsConfig.from_sphinx_config(self.app.config)
+        
+        # Generate unique group ID and create ID generator
         if not hasattr(self.env, 'filter_tabs_counter'):
             self.env.filter_tabs_counter = 0
         self.env.filter_tabs_counter += 1
         self.group_id = f"filter-group-{self.env.filter_tabs_counter}"
+        self.id_gen = IDGenerator(self.group_id)
         
     def render_html(self) -> List[nodes.Node]:
-        """Render HTML with improved accessibility implementation."""
-        if self.app.config.filter_tabs_debug_mode:
+        """
+        Render HTML with improved accessibility implementation.
+        
+        Returns:
+            List of docutils nodes representing the complete tab structure
+        """
+        if self.config.debug_mode:
             logger.info(f"Rendering filter-tabs group {self.group_id}")
+            self._log_tab_data()
+
+        # Generate dynamic CSS as a style node
+        style_node = self._generate_dynamic_css()
         
         # Create container with proper attributes
         container_attrs = self._get_container_attributes()
         container = ContainerNode(**container_attrs)
 
-        # Build semantic structure with proper radiogroup
-        fieldset = FieldsetNode(role="radiogroup")
-        
-        # Create meaningful, visible legend
-        tab_names = [tab['name'] for tab in self.tab_data]
-        legend = LegendNode(classes=[SFT_LEGEND], ids=[f"{self.group_id}-legend"])
-        legend += nodes.Text(f"Choose {self._get_content_type()}: {', '.join(tab_names)}")
-        fieldset += legend
-        
-        # Generate and add dynamic CSS
-        self._generate_dynamic_css()
-        
-        # Radio group container
-        radio_group = ContainerNode(classes=[SFT_RADIO_GROUP])
-        fieldset += radio_group
-
-        # Content area
-        content_area = ContainerNode(classes=[SFT_CONTENT])
-        fieldset += content_area
-
-        # Determine default tab
-        default_index = next((i for i, tab in enumerate(self.tab_data) if tab['is_default']), 0)
-
-        # Debug output:
-        if self.app.config.filter_tabs_debug_mode:
-            logger.info(f"Tab data for group {self.group_id}:")
-            for i, tab in enumerate(self.tab_data):
-                logger.info(f"  Tab {i}: name='{tab['name']}', is_default={tab['is_default']}")
-            logger.info(f"  Selected default_index: {default_index}")
-        
-        # Create radio buttons with proper descriptions
-        for i, tab in enumerate(self.tab_data):
-            radio_id = f"{self.group_id}-radio-{i}"
-            desc_id = f"{self.group_id}-desc-{i}"
-            
-            # Radio button with ARIA description
-            radio = RadioInputNode(
-                type='radio', 
-                name=self.group_id, 
-                ids=[radio_id],
-                **{"aria-describedby": desc_id}
-            )
-            
-            if tab.get('aria_label'):
-                radio['aria-label'] = tab['aria_label']
-            
-            if i == default_index:
-                radio['checked'] = 'checked'
-            radio_group += radio
-
-            # Label for visual interaction
-            label = LabelNode(for_id=radio_id)
-            label += nodes.Text(tab['name'])
-            radio_group += label
-            
-            # Screen reader description
-            desc = nodes.inline(ids=[desc_id], classes=["sr-only"])
-            desc += nodes.Text(f"Show {tab['name'].lower()} content")
-            radio_group += desc
-
-        # Create the general panel if there's general content
-        if self.general_content:
-            general_panel = PanelNode(
-                classes=[SFT_PANEL], 
-                **{'data-filter': 'General'}
-            )
-            general_panel.extend(copy.deepcopy(self.general_content))
-            content_area += general_panel
-
-        # Create all tab panels
-        for i, tab in enumerate(self.tab_data):
-            radio_id = f"{self.group_id}-radio-{i}"
-            panel_id = f"{self.group_id}-panel-{i}"
-            
-            panel_attrs = {
-                'classes': [SFT_PANEL],
-                'ids': [panel_id],
-                'role': 'region',
-                'aria-labelledby': radio_id,
-                'tabindex': '0',
-                'data-tab': tab['name'].lower().replace(' ', '-')
-            }
-            panel = PanelNode(**panel_attrs)
-            panel.extend(copy.deepcopy(tab['content']))
-            content_area += panel
-
+        # Build semantic structure
+        fieldset = self._create_fieldset()
         container.children = [fieldset]
-        return [container]
+        
+        return [style_node, container]
     
     def render_fallback(self) -> List[nodes.Node]:
-        """Render for non-HTML builders (LaTeX, etc.)."""
+        """
+        Render for non-HTML builders (LaTeX, etc.).
+        
+        Returns:
+            List of nodes suitable for non-HTML output
+        """
         output_nodes: List[nodes.Node] = []
         
         # Add general content first if it exists
@@ -154,87 +107,164 @@ class FilterTabsRenderer:
         # Add each tab's content in a titled admonition
         for tab in self.tab_data:
             admonition = nodes.admonition()
-            admonition += nodes.title(text=tab['name'])
-            admonition.extend(copy.deepcopy(tab['content']))
+            admonition += nodes.title(text=tab.name)
+            admonition.extend(copy.deepcopy(tab.content))
             output_nodes.append(admonition)
         
         return output_nodes
     
-    def _get_content_type(self) -> str:
-        """Infer content type from tab names for better legend text."""
-        tab_names = [tab['name'].lower() for tab in self.tab_data]
+    def _create_fieldset(self) -> FieldsetNode:
+        """Create the main fieldset structure with all components."""
+        fieldset = FieldsetNode(role="radiogroup")
         
-        # Common patterns to provide better context
-        if any(name in tab_names for name in ['python', 'javascript', 'java', 'c++', 'rust']):
-            return "programming language"
-        elif any(name in tab_names for name in ['windows', 'mac', 'linux', 'macos']):
-            return "operating system"
-        elif any(name in tab_names for name in ['pip', 'conda', 'npm', 'yarn']):
-            return "package manager"
-        elif any(name in tab_names for name in ['cli', 'gui', 'terminal', 'command']):
-            return "interface"
-        else:
-            return "option"
+        # Create legend
+        legend = self._create_legend()
+        fieldset += legend
+        
+        # Create radio group
+        radio_group = ContainerNode(classes=[SFT_RADIO_GROUP])
+        self._populate_radio_group(radio_group)
+        fieldset += radio_group
+        
+        # Create content area
+        content_area = ContainerNode(classes=[SFT_CONTENT])
+        self._populate_content_area(content_area)
+        fieldset += content_area
+        
+        return fieldset
+    
+    def _create_legend(self) -> LegendNode:
+        """Create a meaningful, visible legend."""
+        tab_names = [tab.name for tab in self.tab_data]
+        content_type = ContentTypeInferrer.infer_type(tab_names)
+        
+        legend = LegendNode(
+            classes=[SFT_LEGEND],
+            ids=[self.id_gen.legend_id()]
+        )
+        legend_text = f"Choose {content_type}: {', '.join(tab_names)}"
+        legend += nodes.Text(legend_text)
+        
+        return legend
+    
+    def _populate_radio_group(self, radio_group: ContainerNode) -> None:
+        """Populate the radio group with radio buttons and labels."""
+        # Find default tab index
+        default_index = next(
+            (i for i, tab in enumerate(self.tab_data) if tab.is_default),
+            0
+        )
+     
+        for i, tab in enumerate(self.tab_data):
+            # Create radio button
+            radio = self._create_radio_button(i, tab, is_checked=(i == default_index))
+            radio_group += radio
+            
+            # Create label
+            label = self._create_label(i, tab)
+            radio_group += label
+            
+            # Create screen reader description
+            desc_text = f"Show content for {tab.name}"
+            description_node = ContainerNode(
+                classes=['sr-only'], ids=[self.id_gen.desc_id(i)]
+            )
+            description_node += nodes.Text(desc_text)
+            radio_group += description_node
+    
+    def _create_radio_button(self, index: int, tab: TabData, is_checked: bool) -> RadioInputNode:
+        """Create a radio button for a tab."""
+        radio = RadioInputNode(
+            classes=['sr-only'],
+            type='radio',
+            name=self.group_id,
+            ids=[self.id_gen.radio_id(index)],
+            **{'aria-describedby': self.id_gen.desc_id(index)}
+        )
+        
+        if tab.aria_label:
+            radio['aria-label'] = tab.aria_label
+        
+        if is_checked:
+            radio['checked'] = 'checked'
+            
+        return radio
+    
+    def _create_label(self, index: int, tab: TabData) -> LabelNode:
+        """Create a label for a radio button."""
+        label = LabelNode(for_id=self.id_gen.radio_id(index))
+        label += nodes.Text(tab.name)
+        return label
+    
+    def _populate_content_area(self, content_area: ContainerNode) -> None:
+        """Populate the content area with general and tab panels."""
+        # Add general panel if there's general content
+        if self.general_content:
+            general_panel = PanelNode(
+                classes=[SFT_PANEL],
+                **{'data-filter': 'General'}
+            )
+            general_panel.extend(copy.deepcopy(self.general_content))
+            content_area += general_panel
+        
+        # Add tab panels
+        for i, tab in enumerate(self.tab_data):
+            panel = self._create_tab_panel(i, tab)
+            content_area += panel
+    
+    def _create_tab_panel(self, index: int, tab: TabData) -> PanelNode:
+        """Create a panel for tab content."""
+        panel_attrs = {
+            'classes': [SFT_PANEL],
+            'ids': [self.id_gen.panel_id(index)],
+            'role': 'region',
+            'aria-labelledby': self.id_gen.radio_id(index),
+            'tabindex': '0',
+            'data-tab': tab.name.lower().replace(' ', '-')
+        }
+        panel = PanelNode(**panel_attrs)
+        panel.extend(copy.deepcopy(tab.content))
+        return panel
     
     def _get_container_attributes(self) -> Dict[str, Any]:
         """Get container attributes with CSS custom properties."""
-        attrs = {
+        return {
             'classes': [SFT_CONTAINER],
             'role': 'region',
-            'aria-labelledby': f'{self.group_id}-legend',
-            'style': self._get_css_custom_properties()
+            'aria-labelledby': self.id_gen.legend_id(),
+            'style': self.config.to_css_properties()
         }
-        return attrs
     
-    def _get_css_custom_properties(self) -> str:
-        """Generate CSS custom properties from configuration."""
-        config = self.app.config
-        properties = {
-            "--sft-border-radius": getattr(config, 'filter_tabs_border_radius', '8px'),
-            "--sft-tab-background": getattr(config, 'filter_tabs_tab_background_color', '#f0f0f0'),
-            "--sft-tab-font-size": getattr(config, 'filter_tabs_tab_font_size', '1em'),
-            "--sft-tab-highlight-color": getattr(config, 'filter_tabs_tab_highlight_color', '#007bff'),
-            "--sft-collapsible-accent-color": getattr(config, 'filter_tabs_collapsible_accent_color', '#17a2b8'),
-        }
-        
-        return "; ".join([f"{key}: {value}" for key, value in properties.items()])
-    
-    def _generate_dynamic_css(self) -> None:
-        """Generate CSS rules for showing/hiding panels based on radio button state."""
+    def _generate_dynamic_css(self) -> nodes.raw:
+        """Generate CSS rules and return them as a raw HTML style node."""
         css_rules = []
         
         for i, tab in enumerate(self.tab_data):
-            radio_id = f"{self.group_id}-radio-{i}"
-            panel_selector = f'.sft-panel[data-tab="{tab["name"].lower().replace(" ", "-")}"]'
+            radio_id = self.id_gen.radio_id(i)
+            panel_selector = f'.sft-panel[data-tab="{tab.name.lower().replace(" ", "-")}"]'
             
             css_rules.append(
                 f'.sft-radio-group:has(#{radio_id}:checked) ~ .sft-content > {panel_selector} {{ display: block; }}'
             )
-        
-        # Write dynamic CSS to file
+
+        # Embed dynamic CSS in a style tag
         css_content = '\n'.join(css_rules)
-        static_dir = Path(self.app.outdir) / '_static'
-        static_dir.mkdir(parents=True, exist_ok=True)
-        css_filename = f"dynamic-filter-tabs-{self.group_id}.css"
-        (static_dir / css_filename).write_text(css_content, encoding='utf-8')
-        self.app.add_css_file(css_filename)
-
-
-# Custom nodes
-class ContainerNode(nodes.General, nodes.Element):
-    pass
-
-class FieldsetNode(nodes.General, nodes.Element): 
-    pass
-
-class LegendNode(nodes.General, nodes.Element): 
-    pass
-
-class RadioInputNode(nodes.General, nodes.Element): 
-    pass
-
-class LabelNode(nodes.General, nodes.Element): 
-    pass
-
-class PanelNode(nodes.General, nodes.Element): 
-    pass
+        style_node = nodes.raw(
+            text=f"<style>\n{css_content}\n</style>", format='html'
+        )
+        return style_node
+    
+    def _log_tab_data(self) -> None:
+        """Log tab data for debugging purposes."""
+        logger.info(f"Tab data for group {self.group_id}:")
+        for i, tab in enumerate(self.tab_data):
+            logger.info(
+                f"  Tab {i}: name='{tab.name}', "
+                f"is_default={tab.is_default}, "
+                f"aria_label='{tab.aria_label or 'None'}'"
+            )
+        default_index = next(
+            (i for i, tab in enumerate(self.tab_data) if tab.is_default),
+            0
+        )
+        logger.info(f"  Selected default_index: {default_index}")

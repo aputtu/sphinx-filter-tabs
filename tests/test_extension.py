@@ -179,19 +179,21 @@ Test Document
     # Container should reference legend
     assert container.get('aria-labelledby') == legend.get('id')
     
-    # Check screen reader descriptions
-    sr_descriptions = soup.select('.sr-only')
-    assert len(sr_descriptions) >= 2, "Should have SR descriptions for each tab"
-    
-    # Check radio buttons have describedby attributes
+    # --- START of updated section ---
+
+    # Check that each radio button has a corresponding screen reader description
     radios = soup.select('input[type="radio"]')
+    assert len(radios) == 2
+
     for radio in radios:
-        describedby = radio.get('aria-describedby')
-        assert describedby, "Radio should have aria-describedby"
-        desc_element = soup.select_one(f'#{describedby}')
-        assert desc_element, f"Description element {describedby} should exist"
-    
-    # Check panels are focusable
+        describedby_id = radio.get('aria-describedby')
+        assert describedby_id, "Radio button should have aria-describedby"
+        
+        desc_element = soup.select_one(f'#{describedby_id}')
+        assert desc_element, f"Description element #{describedby_id} should exist"
+        assert 'sr-only' in desc_element.get('class', []), "Description should be sr-only"
+
+    # Check panels are focusable (with typo corrected)
     panels = soup.select('.sft-panel[role="region"]')
     for panel in panels:
         if panel.get('data-filter') != 'General':  # General panel doesn't need tabindex
