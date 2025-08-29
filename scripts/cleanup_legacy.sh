@@ -1,3 +1,38 @@
+#!/bin/bash
+# cleanup_legacy.sh - Remove legacy dual implementation files
+
+set -e
+
+echo "🧹 Cleaning up legacy dual implementation files..."
+
+# Files to remove completely
+FILES_TO_REMOVE=(
+    "filter_tabs/config.py"
+    "filter_tabs/static/filter_tabs_legacy.css"
+    "filter_tabs/static/filter_tabs_common.css"
+    "filter_tabs/static/filter_tabs_accessible.css"
+    "filter_tabs/static/filter_tabs.css"  # Will be replaced
+    "setup_patch.py"
+    "validate_dual_implementation.py"
+    "tests/test_dual_implementation.py"
+    "scripts/setup_dual_implementation.sh"
+)
+
+# Remove files
+for file in "${FILES_TO_REMOVE[@]}"; do
+    if [ -f "$file" ]; then
+        echo "🗑️  Removing $file"
+        rm "$file"
+    else
+        echo "⚠️  File $file not found (already removed?)"
+    fi
+done
+
+echo "✅ Legacy files removed"
+
+# Create new simplified CSS from the cleaned version
+echo "📝 Creating new simplified filter_tabs.css..."
+cat > "filter_tabs/static/filter_tabs.css" << 'EOF'
 /* Sphinx Filter Tabs - Simplified Accessibility-First Stylesheet */
 
 /* Main container */
@@ -181,3 +216,34 @@
         transition: none;
     }
 }
+EOF
+
+echo "✅ New simplified CSS created"
+
+# Update version in pyproject.toml to indicate breaking change
+echo "📝 Updating version to 2.0.0 in pyproject.toml..."
+if [ -f "pyproject.toml" ]; then
+    sed -i 's/version = "1\.0\.0"/version = "2.0.0"/' pyproject.toml
+    echo "✅ Version updated to 2.0.0"
+else
+    echo "⚠️  pyproject.toml not found"
+fi
+
+echo ""
+echo "🎉 Cleanup complete!"
+echo ""
+echo "📋 Summary of changes:"
+echo "  ✅ Removed dual implementation system"
+echo "  ✅ Removed legacy CSS files" 
+echo "  ✅ Created simplified filter_tabs.css"
+echo "  ✅ Bumped version to 2.0.0 (breaking change)"
+echo ""
+echo "📝 Next steps:"
+echo "  1. Replace filter_tabs/extension.py with the cleaned version"
+echo "  2. Replace filter_tabs/renderer.py with the cleaned version" 
+echo "  3. Replace tests/test_extension.py with the cleaned version"
+echo "  4. Remove tests/test_accessibility_compliance.py (if no longer needed)"
+echo "  5. Update documentation to remove dual implementation references"
+echo "  6. Test the simplified implementation"
+echo ""
+echo "⚠️  This is a BREAKING CHANGE - bump to version 2.0.0"

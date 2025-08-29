@@ -1,8 +1,7 @@
 # filter_tabs/extension.py
 
 from __future__ import annotations
-from .config import FilterTabsConfig, setup_filter_tabs_config
-from .renderer import DualImplementationRenderer
+from .renderer import FilterTabsRenderer
 import re
 import copy
 import shutil
@@ -20,12 +19,6 @@ if TYPE_CHECKING:
     from sphinx.environment import BuildEnvironment
 
 # --- Constants ---
-SFT_CONTAINER = "sft-container"
-SFT_FIELDSET = "sft-fieldset"
-SFT_LEGEND = "sft-legend"
-SFT_CONTENT = "sft-content"
-SFT_PANEL = "sft-panel"
-SFT_TEMP_PANEL = "sft-temp-panel"
 COLLAPSIBLE_SECTION = "collapsible-section"
 COLLAPSIBLE_CONTENT = "collapsible-content"
 CUSTOM_ARROW = "custom-arrow"
@@ -55,21 +48,30 @@ class TabDirective(Directive):
         if not hasattr(env, 'sft_context') or not env.sft_context:
             raise self.error("`tab` can only be used inside a `filter-tabs` directive.")
         
+        # Get ONLY the first argument line, not the content
         tab_arg = self.arguments[0].strip()
-        is_default = False
-        tab_name = tab_arg
         
-        match = re.match(r"^(.*?)\s*\(\s*default\s*\)$", tab_arg, re.IGNORECASE)
+        # Split by newlines and take only the first line (the actual argument)
+        tab_lines = tab_arg.split('\n')
+        first_line = tab_lines[0].strip()
+        
+        is_default = False
+        tab_name = first_line
+        
+        # Parse (default) correctly from the first line only
+        match = re.match(r"^(.*?)\s*\(\s*default\s*\)$", first_line, re.IGNORECASE)
         if match:
-            tab_name = match.group(1).strip()
+            tab_name = match.group(1).strip()  # Remove (default) from name
             is_default = True
         
-        container = nodes.container(classes=[SFT_TEMP_PANEL])
-        container['filter_name'] = tab_name
+        container = nodes.container(classes=["sft-temp-panel"])
+        container['filter_name'] = tab_name  # Should be clean name only
         container['is_default'] = is_default
         container['aria_label'] = self.options.get('aria-label', None)
         
+        # Parse the content separately
         self.state.nested_parse(self.content, self.content_offset, container)
+        
         return [container]
 
 
@@ -95,12 +97,17 @@ class FilterTabsDirective(Directive):
         tab_data = []
         
         for node in temp_container.children:
-            if isinstance(node, nodes.Element) and SFT_TEMP_PANEL in node.get('classes', []):
+            if isinstance(node, nodes.Element) and "sft-temp-panel" in node.get('classes', []):
+                # Get the stored attributes from TabDirective
+                filter_name = node.get('filter_name', 'Unknown')
+                is_default = node.get('is_default', False)
+                aria_label = node.get('aria_label', None)
+                
                 tab_data.append({
-                    'name': node['filter_name'],
-                    'is_default': node.get('is_default', False),
-                    'aria_label': node.get('aria_label'),
-                    'content': node.children
+                    'name': filter_name,
+                    'is_default': is_default,
+                    'aria_label': aria_label,
+                    'content': list(node.children)
                 })
             else:
                 general_content.append(node)
@@ -108,13 +115,14 @@ class FilterTabsDirective(Directive):
         if not tab_data:
             raise self.error("No `.. tab::` directives found inside `filter-tabs`.")
         
-        if not any(tab['is_default'] for tab in tab_data):
+        # Only set first tab as default if NO tab has is_default=True
+        default_tabs = [i for i, tab in enumerate(tab_data) if tab['is_default']]
+        
+        if not default_tabs:
             tab_data[0]['is_default'] = True
         
-        renderer = DualImplementationRenderer(self, tab_data, general_content)
-
+        renderer = FilterTabsRenderer(self, tab_data, general_content)
         return renderer.render_html() if env.app.builder.name == 'html' else renderer.render_fallback()
-
 
 def setup_collapsible_admonitions(app: Sphinx, doctree: nodes.document, docname: str):
     """Convert admonitions with 'collapsible' class to details/summary elements."""
@@ -169,13 +177,13 @@ def visit_fieldset_node(self: HTML5Translator, node: FieldsetNode) -> None:
     attrs = _get_html_attrs(node)
     if 'role' in node.attributes:
         attrs['role'] = node['role']
-    self.body.append(self.starttag(node, 'fieldset', CLASS=SFT_FIELDSET, **attrs))
+    self.body.append(self.starttag(node, 'fieldset', CLASS="sft-fieldset", **attrs))
 
 def depart_fieldset_node(self: HTML5Translator, node: FieldsetNode) -> None:
     self.body.append('</fieldset>')
 
 def visit_legend_node(self: HTML5Translator, node: LegendNode) -> None:
-    self.body.append(self.starttag(node, 'legend', CLASS=SFT_LEGEND))
+    self.body.append(self.starttag(node, 'legend', CLASS="sft-legend"))
 
 def depart_legend_node(self: HTML5Translator, node: LegendNode) -> None:
     self.body.append('</legend>')
@@ -204,7 +212,7 @@ def visit_panel_node(self: HTML5Translator, node: PanelNode) -> None:
     for key in ['role', 'aria-labelledby', 'tabindex', 'data-filter', 'data-tab']:
         if key in node.attributes:
             attrs[key] = node[key]
-    self.body.append(self.starttag(node, 'div', CLASS=SFT_PANEL, **attrs))
+    self.body.append(self.starttag(node, 'div', CLASS="sft-panel", **attrs))
 
 def depart_panel_node(self: HTML5Translator, node: PanelNode) -> None:
     self.body.append('</div>')
@@ -242,17 +250,24 @@ def copy_static_files(app: Sphinx):
 
 def setup(app: Sphinx) -> Dict[str, Any]:
     """Setup the Sphinx extension."""
-    # Register ALL configuration values (including the dual implementation ones)
-    setup_filter_tabs_config(app)
+    # Basic theming configuration
+    app.add_config_value('filter_tabs_tab_highlight_color', '#007bff', 'html', [str])
+    app.add_config_value('filter_tabs_tab_background_color', '#f0f0f0', 'html', [str])
+    app.add_config_value('filter_tabs_tab_font_size', '1em', 'html', [str])
+    app.add_config_value('filter_tabs_border_radius', '8px', 'html', [str])
     
-    # Get configuration manager
-    config = FilterTabsConfig(app)
+    # Feature configuration
+    app.add_config_value('filter_tabs_debug_mode', False, 'html', [bool])
+    app.add_config_value('filter_tabs_collapsible_enabled', True, 'html', [bool])
+    app.add_config_value('filter_tabs_collapsible_accent_color', '#17a2b8', 'html', [str])
     
-    # Add CSS and JS files based on configuration
-    for css_file in config.get_css_files():
-        app.add_css_file(css_file)
-    for js_file in config.get_js_files():
-        app.add_js_file(js_file)
+    # Accessibility configuration
+    app.add_config_value('filter_tabs_keyboard_navigation', True, 'html', [bool])
+    app.add_config_value('filter_tabs_announce_changes', True, 'html', [bool])
+    
+    # Add CSS and JS files
+    app.add_css_file('filter_tabs.css')
+    app.add_js_file('filter_tabs.js')
     
     # Register custom nodes
     app.add_node(ContainerNode, html=(visit_container_node, depart_container_node))

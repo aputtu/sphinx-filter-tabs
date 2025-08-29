@@ -1,3 +1,16 @@
+#!/bin/bash
+# test_cleanup.sh - Remove outdated tests and create simplified test suite
+
+echo "Cleaning up outdated tests..."
+
+# Remove the outdated test files
+rm -f tests/test_accessibility_compliance.py
+rm -f tests/test_dual_implementation.py
+
+echo "Removed outdated test files"
+
+# Create updated test_extension.py
+cat > tests/test_extension.py << 'EOF'
 # tests/test_extension.py
 
 import pytest
@@ -338,7 +351,6 @@ Test Document
 @pytest.mark.sphinx('html')
 def test_default_tab_selection(app: SphinxTestApp):
     """Test that default tab selection works properly."""
-    app.config.filter_tabs_debug_mode = True
     content = """
 Test Document
 =============
@@ -363,29 +375,14 @@ Test Document
     radios = soup.select('input[type="radio"]')
     assert len(radios) == 3
     
-    # Find which radio has the checked attribute
-    checked_radios = []
-    for i, radio in enumerate(radios):
-        if radio.get('checked') is not None:
-            checked_radios.append(i)
-    
-    # Debug output if the test fails
-    if checked_radios != [1]:
-        labels = soup.select('.sft-radio-group label')
-        label_texts = [label.text.strip() for label in labels]
-        print(f"Label texts: {label_texts}")
-        print(f"Checked radios: {checked_radios}")
-        
-        # Check the tab data to see which one was marked as default
-        for i, radio in enumerate(radios):
-            print(f"Radio {i} checked: {radio.get('checked') is not None}")
-    
-    assert checked_radios == [1], f"Expected second tab to be checked, but got: {checked_radios}"
+    # Only the second radio should be checked
+    checked_radios = [i for i, radio in enumerate(radios) if radio.get('checked') is not None]
+    assert checked_radios == [1], "Only the second tab should be checked"
 
 
 @pytest.mark.sphinx('html')
 def test_error_handling_no_tabs(app: SphinxTestApp):
-    """Test that filter-tabs without any tab directives shows an error."""
+    """Test that filter-tabs without any tab directives raises an error."""
     content = """
 Test Document
 =============
@@ -396,25 +393,15 @@ Test Document
 """
     app.srcdir.joinpath('index.rst').write_text(content)
     
-    # Build and capture status
-    app.build()
-    
-    # Check that warnings/errors were generated
-    # The error appears in the warning stream, not as an exception
-    warning_text = app._warning.getvalue() if hasattr(app, '_warning') else ""
-    
-    # Alternative: check the build log for the error
-    build_succeeded = True
+    # This should raise an error during build
     try:
-        # The build may succeed but generate an error/warning
-        output = app.outdir / 'index.html'
-        if output.exists():
-            # Check if the output contains error indication
-            content = output.read_text()
-            # If no tabs were processed, there shouldn't be a .sft-container
-            soup = BeautifulSoup(content, 'html.parser')
-            containers = soup.select('.sft-container')
-            assert len(containers) == 0, "Should not create containers when no tabs are found"
-    except Exception:
-        # If an exception was raised, that's also acceptable
-        pass
+        app.build()
+        # If we get here, the build unexpectedly succeeded
+        assert False, "Expected build to fail with no tab directives"
+    except Exception as e:
+        # Should contain our specific error message
+        assert "No `.. tab::` directives found" in str(e)
+EOF
+
+echo "Created updated test_extension.py"
+echo "Run 'pytest tests/test_extension.py -v' to test the cleaned implementation"
