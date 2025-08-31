@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath('..'))
 project = 'Sphinx Extension - Filter Tabs'
 copyright = '2025, Aputsiak Niels Janussen'
 author = 'Aputsiak Niels Janussen'
-release = '1.1.0'
+release = '1.2.0'
 
 # -- General configuration ---------------------------------------------------
 extensions = [
@@ -24,6 +24,9 @@ html_static_path = ['_static']
 latex_elements = {
     'papersize': 'a4paper',
     'classoptions': ',oneside',
+    'preamble': r'''
+        \setcounter{secnumdepth}{0}  % Disable section numbering
+    ''',
 }
 
 # Define the LaTeX document structure.

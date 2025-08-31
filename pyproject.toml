@@ -3,21 +3,21 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-keywords = ["sphinx", "extension", "tabs", "filter", "documentation", "no-js", "aria", "accessibility"]
+keywords = ["sphinx", "extension", "tabs", "filter", "documentation", "css-only", "accessibility", "keyboard-navigation"]
 name = "sphinx-filter-tabs"
-version = "1.1.0"  
-description = "A Sphinx extension for accessible, JS-free filterable content tabs."
+version = "1.2.0"  
+description = "A Sphinx extension for accessible, CSS-first filterable content tabs."
 readme = "README.md"
 license = { text = "GNU General Public License v3.0" }
 authors = [{ name = "Aputsiak Niels Janussen", email = "aputsiak+sphinx@gmail.com" }]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Framework :: Sphinx :: Extension",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.12",
     "Topic :: Documentation :: Sphinx",
     "Topic :: Software Development :: Documentation"

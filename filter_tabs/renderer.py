@@ -1,6 +1,7 @@
 # filter_tabs/renderer.py
 """
 Renders the HTML and fallback output for the filter-tabs directive.
+Consolidated version including parsing utilities and content type inference.
 """
 
 from __future__ import annotations
@@ -10,9 +11,9 @@ from docutils import nodes
 from sphinx.util import logging
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
-from .models import TabData, FilterTabsConfig, IDGenerator
-from .parsers import ContentTypeInferrer
-from .nodes import ContainerNode, FieldsetNode, LegendNode, RadioInputNode, LabelNode, PanelNode
+# Import models from extension.py (after consolidation)
+from .extension import TabData, FilterTabsConfig, IDGenerator
+from .extension import ContainerNode, FieldsetNode, LegendNode, RadioInputNode, LabelNode, PanelNode
 
 if TYPE_CHECKING:
     from sphinx.environment import BuildEnvironment
@@ -29,19 +30,68 @@ SFT_CONTENT = "sft-content"
 SFT_PANEL = "sft-panel"
 
 
+# =============================================================================
+# Content Type Inference Utilities (moved from parsers.py)
+# =============================================================================
+
+class ContentTypeInferrer:
+    """
+    Infers the type of content based on tab names to generate meaningful legends.
+    """
+    PATTERNS = [
+        (['python', 'javascript', 'java', 'c++', 'rust', 'go', 'ruby', 'php'], 'programming language'),
+        (['windows', 'mac', 'macos', 'linux', 'ubuntu', 'debian', 'fedora'], 'operating system'),
+        (['pip', 'conda', 'npm', 'yarn', 'cargo', 'gem', 'composer'], 'package manager'),
+        (['cli', 'gui', 'terminal', 'command', 'console', 'graphical'], 'interface'),
+        (['development', 'staging', 'production', 'test', 'local'], 'environment'),
+        (['source', 'binary', 'docker', 'manual', 'automatic'], 'installation method'),
+    ]
+    
+    @classmethod
+    def infer_type(cls, tab_names: List[str]) -> str:
+        """
+        Infer content type from a list of tab names.
+        
+        Args:
+            tab_names: List of tab names to analyze
+            
+        Returns:
+            Inferred content type string (e.g., 'programming language', 'operating system')
+        """
+        lower_names = [name.lower() for name in tab_names]
+        
+        # First pass: exact matches
+        for keywords, content_type in cls.PATTERNS:
+            if any(name in keywords for name in lower_names):
+                return content_type
+        
+        # Second pass: substring matches
+        for keywords, content_type in cls.PATTERNS:
+            for name in lower_names:
+                if any(keyword in name for keyword in keywords):
+                    return content_type
+        
+        # Default fallback
+        return 'option'
+
+
+# =============================================================================
+# Main Renderer Class
+# =============================================================================
+
 class FilterTabsRenderer:
     """
     Renders filter tabs with a focus on accessibility and browser compatibility.
+    Consolidated version with integrated content type inference.
     """
 
-    # UPDATE the __init__ signature to accept custom_legend
     def __init__(self, directive: Directive, tab_data: List[TabData], general_content: List[nodes.Node], custom_legend: Optional[str] = None):
         self.directive = directive
         self.env: BuildEnvironment = directive.state.document.settings.env
         self.app = self.env.app
         self.tab_data = tab_data
         self.general_content = general_content
-        self.custom_legend = custom_legend # STORE the custom legend
+        self.custom_legend = custom_legend
         
         # 1. Load configuration first
         self.config = FilterTabsConfig.from_sphinx_config(self.app.config)
@@ -136,11 +186,11 @@ class FilterTabsRenderer:
         """Create a meaningful, visible legend for the tab group."""
         legend = LegendNode(classes=[SFT_LEGEND], ids=[self.id_gen.legend_id()])
         
-        # UPDATE the logic to use the custom legend if it exists
+        # Use the custom legend if it exists
         if self.custom_legend:
             legend_text = self.custom_legend
         else:
-            # Fallback to the auto-generated legend
+            # Fallback to the auto-generated legend using content type inference
             tab_names = [tab.name for tab in self.tab_data]
             content_type = ContentTypeInferrer.infer_type(tab_names)
             legend_text = f"Choose {content_type}: {', '.join(tab_names)}"
@@ -208,3 +258,4 @@ class FilterTabsRenderer:
         panel = PanelNode(**panel_attrs)
         panel.extend(copy.deepcopy(tab.content))
         return panel
+    

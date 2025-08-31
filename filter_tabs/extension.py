@@ -1,7 +1,7 @@
 # filter_tabs/extension.py
 """
 Core extension module for sphinx-filter-tabs.
-Updated to use consolidated CSS approach.
+Consolidated version containing directives, data models, nodes, and Sphinx integration.
 """
 
 from __future__ import annotations
@@ -14,19 +14,121 @@ from sphinx.application import Sphinx
 from sphinx.util import logging
 from sphinx.writers.html import HTML5Translator
 
-from typing import TYPE_CHECKING, Any, Dict, List
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from dataclasses import dataclass, field
 from . import __version__
-from .models import TabData, FilterTabsConfig
-from .parsers import TabArgumentParser, TabDataValidator
-from .renderer import FilterTabsRenderer
-from .nodes import (
-    ContainerNode, FieldsetNode, LegendNode, RadioInputNode,
-    LabelNode, PanelNode, DetailsNode, SummaryNode
-)
-
 
 if TYPE_CHECKING:
     from sphinx.environment import BuildEnvironment
+
+# =============================================================================
+# Custom Docutils Nodes
+# =============================================================================
+
+class ContainerNode(nodes.General, nodes.Element): pass
+class FieldsetNode(nodes.General, nodes.Element): pass
+class LegendNode(nodes.General, nodes.Element): pass
+class RadioInputNode(nodes.General, nodes.Element): pass
+class LabelNode(nodes.General, nodes.Element): pass
+class PanelNode(nodes.General, nodes.Element): pass
+class DetailsNode(nodes.General, nodes.Element): pass
+class SummaryNode(nodes.General, nodes.Element): pass
+
+
+# =============================================================================
+# Data Models and Configuration
+# =============================================================================
+
+@dataclass
+class TabData:
+    """
+    Represents a single tab's data within a filter-tabs directive.
+    
+    Attributes:
+        name: Display name of the tab
+        is_default: Whether this tab should be selected by default
+        aria_label: Optional ARIA label for accessibility
+        content: List of docutils nodes containing the tab's content
+    """
+    name: str
+    is_default: bool = False
+    aria_label: Optional[str] = None
+    content: List[nodes.Node] = field(default_factory=list)
+    
+    def __post_init__(self):
+        """Validate tab data after initialization."""
+        if not self.name:
+            raise ValueError("Tab name cannot be empty")
+        
+        # Ensure content is a list
+        if self.content is None:
+            self.content = []
+
+
+@dataclass
+class FilterTabsConfig:
+    """
+    Simplified configuration settings for filter-tabs rendering.
+    Reduced from 9 options to 2 essential ones.
+    """
+    # Essential theming - only the highlight color is commonly customized
+    highlight_color: str = '#007bff'
+    
+    # Development option
+    debug_mode: bool = False
+    
+    @classmethod
+    def from_sphinx_config(cls, app_config) -> 'FilterTabsConfig':
+        """Create a FilterTabsConfig from Sphinx app.config."""
+        return cls(
+            highlight_color=getattr(
+                app_config, 'filter_tabs_highlight_color', cls.highlight_color
+            ),
+            debug_mode=getattr(
+                app_config, 'filter_tabs_debug_mode', cls.debug_mode
+            ),
+        )
+    
+    def to_css_properties(self) -> str:
+        """Convert config to CSS custom properties string."""
+        # Generate CSS variables - the highlight color drives all other colors
+        return f"--sft-highlight-color: {self.highlight_color};"
+
+
+@dataclass
+class IDGenerator:
+    """
+    Centralized ID generation for consistent element identification.
+    
+    This ensures all IDs follow a consistent pattern and are unique
+    within their filter-tabs group.
+    """
+    group_id: str
+    
+    def radio_id(self, index: int) -> str:
+        """Generate ID for a radio button."""
+        return f"{self.group_id}-radio-{index}"
+    
+    def panel_id(self, index: int) -> str:
+        """Generate ID for a content panel."""
+        return f"{self.group_id}-panel-{index}"
+    
+    def desc_id(self, index: int) -> str:
+        """Generate ID for a screen reader description."""
+        return f"{self.group_id}-desc-{index}"
+    
+    def legend_id(self) -> str:
+        """Generate ID for the fieldset legend."""
+        return f"{self.group_id}-legend"
+    
+    def label_id(self, index: int) -> str:
+        """Generate ID for a label (if needed)."""
+        return f"{self.group_id}-label-{index}"
+
+
+# =============================================================================
+# Directive Classes
+# =============================================================================
 
 # --- Constants ---
 COLLAPSIBLE_SECTION = "collapsible-section"
@@ -51,9 +153,9 @@ class TabDirective(Directive):
         if not hasattr(env, 'sft_context') or not env.sft_context:
            raise self.error("`tab` can only be used inside a `filter-tabs` directive.")
         
-        # Parse tab argument using dedicated parser
+        # Parse tab argument - moved from parsers.py
         try:
-            tab_name, is_default = TabArgumentParser.parse(self.arguments[0])
+            tab_name, is_default = self._parse_tab_argument(self.arguments[0])
         except ValueError as e:
             raise self.error(f"Invalid tab argument: {e}")
         
@@ -67,6 +169,32 @@ class TabDirective(Directive):
         self.state.nested_parse(self.content, self.content_offset, container)
         
         return [container]
+    
+    def _parse_tab_argument(self, argument: str) -> tuple[str, bool]:
+        """Parse a tab argument string to extract name and default status."""
+        import re
+        
+        logger.debug(f"Parsing tab argument: '{argument}'")
+        if not argument:
+            raise ValueError("Tab argument cannot be empty")
+        
+        lines = argument.strip().split('\n')
+        first_line = lines[0].strip()
+        
+        if len(lines) > 1:
+            logger.debug(
+                f"Tab argument contains multiple lines, using only first: '{first_line}'"
+            )
+        
+        DEFAULT_PATTERN = re.compile(r"^(.*?)\s*\(\s*default\s*\)$", re.IGNORECASE)
+        match = DEFAULT_PATTERN.match(first_line)
+        if match:
+            tab_name = match.group(1).strip()
+            if not tab_name:
+                raise ValueError("Tab name cannot be empty")
+            return tab_name, True
+        
+        return first_line, False
 
 
 class FilterTabsDirective(Directive):
@@ -74,7 +202,6 @@ class FilterTabsDirective(Directive):
     has_content = True
     required_arguments = 0
     optional_arguments = 0
-    # ADD a spec for the new :legend: option
     option_spec = {'legend': directives.unchanged}
 
     def run(self) -> list[nodes.Node]:
@@ -92,7 +219,7 @@ class FilterTabsDirective(Directive):
         
         env.sft_context.pop()
         
-        # GET the value of the new :legend: option
+        # Get the custom legend option
         custom_legend = self.options.get('legend')
 
         # Separate general content from tabs using TabData
@@ -112,7 +239,7 @@ class FilterTabsDirective(Directive):
             else:
                 general_content.append(node)
         
-        # Validate tabs
+        # Validate tabs - moved from parsers.py
         if not tab_data_list:
             error_message = (
                 "No `.. tab::` directives found inside `.. filter-tabs::`. "
@@ -125,7 +252,7 @@ class FilterTabsDirective(Directive):
             raise self.error(error_message)
 
         try:
-            TabDataValidator.validate_tabs(tab_data_list, skip_empty_check=True)
+            self._validate_tabs(tab_data_list, skip_empty_check=True)
         except ValueError as e:
             raise self.error(str(e))
         
@@ -133,7 +260,8 @@ class FilterTabsDirective(Directive):
         if not any(tab.is_default for tab in tab_data_list):
             tab_data_list[0].is_default = True
         
-        # PASS the custom_legend value to the renderer
+        # Import renderer here to avoid circular imports
+        from .renderer import FilterTabsRenderer
         renderer = FilterTabsRenderer(self, tab_data_list, general_content, custom_legend=custom_legend)
         
         # Render based on builder
@@ -141,9 +269,43 @@ class FilterTabsDirective(Directive):
             return renderer.render_html()
         else:
             return renderer.render_fallback()
+    
+    def _validate_tabs(self, tab_data_list: List[TabData], skip_empty_check: bool = False) -> None:
+        """Validate tab data list - moved from parsers.py"""
+        if not tab_data_list and not skip_empty_check:
+            raise ValueError(
+                "No tab directives found inside filter-tabs. "
+                "Add at least one .. tab:: directive."
+            )
+        names = []
+        for tab in tab_data_list:
+            name = tab.name
+            if name in names:
+                raise ValueError(
+                    f"Duplicate tab name '{name}'. Each tab must have a unique name."
+                )
+            names.append(name)
+            if not tab.content:
+                logger.warning(f"Tab '{name}' has no content.")    
+        
+        default_count = 0
+        default_names = []
+        for tab in tab_data_list:
+            if tab.is_default:
+                default_count += 1
+                default_names.append(tab.name)
+        
+        if default_count > 1:
+            logger.warning(
+                f"Multiple tabs marked as default: {', '.join(default_names)}. "
+                f"Using first default: '{default_names[0]}'"
+            )
 
 
-# ... (rest of the file is unchanged) ...
+# =============================================================================
+# Collapsible Admonitions Support
+# =============================================================================
+
 def setup_collapsible_admonitions(app: Sphinx, doctree: nodes.document, docname: str):
     """Convert admonitions with 'collapsible' class to details/summary elements."""
     # Simplified: always enabled for HTML builds, no config needed
@@ -179,6 +341,10 @@ def setup_collapsible_admonitions(app: Sphinx, doctree: nodes.document, docname:
         node.replace_self(details_node)
 
 
+# =============================================================================
+# HTML Visitor Functions
+# =============================================================================
+
 def _get_html_attrs(node: nodes.Element) -> Dict[str, Any]:
     """Extract HTML attributes from a docutils node, excluding internal attributes."""
     attrs = node.attributes.copy()
@@ -187,7 +353,6 @@ def _get_html_attrs(node: nodes.Element) -> Dict[str, Any]:
     return attrs
 
 
-# --- HTML Visitor Functions ---
 def visit_container_node(self: HTML5Translator, node: ContainerNode) -> None:
     self.body.append(self.starttag(node, 'div', **_get_html_attrs(node)))
 
@@ -254,6 +419,10 @@ def depart_summary_node(self: HTML5Translator, node: SummaryNode) -> None:
     self.body.append('</summary>')
 
 
+# =============================================================================
+# Static File Handling
+# =============================================================================
+
 def copy_static_files(app: Sphinx):
     """Copy CSS and JS files to the build directory."""
     if app.builder.name != 'html':
@@ -273,6 +442,10 @@ def copy_static_files(app: Sphinx):
     if js_file.exists():
         shutil.copy(js_file, dest_dir)
 
+
+# =============================================================================
+# Extension Setup
+# =============================================================================
 
 def setup(app: Sphinx) -> Dict[str, Any]:
     """Setup the Sphinx extension with minimal configuration."""
