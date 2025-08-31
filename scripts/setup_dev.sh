@@ -1,9 +1,25 @@
 #!/bin/bash
 set -e
 
+# --- Check for Python 3.10 and install if missing ---
+echo "🐍 Checking for Python 3.10..."
+if ! command -v python3.10 &> /dev/null
+then
+    echo "Python 3.10 not found. Installing via deadsnakes PPA..."
+    echo "You may be prompted for your password to run 'sudo'."
+    sudo add-apt-repository ppa:deadsnakes/ppa -y
+    sudo apt-get update
+    sudo apt-get install python3.10 python3.10-venv -y
+    echo "✅ Python 3.10 installed."
+else
+    echo "✅ Python 3.10 is already installed."
+fi
+echo ""
+
 echo "🧹 Starting a full clean-up..."
-# Remove the virtual environment to ensure fresh dependencies
+# Remove virtual environment and tox cache directories
 rm -rf venv
+rm -rf .tox
 
 # Remove Python bytecode cache directories
 find . -type d -name "__pycache__" -exec rm -rf {} +
@@ -11,7 +27,7 @@ find . -type d -name "__pycache__" -exec rm -rf {} +
 # Remove package build artifacts from setuptools/pip
 rm -rf build dist *.egg-info
 
-# Remove testing artifacts
+# Remove other testing artifacts
 rm -rf .pytest_cache .coverage htmlcov
 
 echo "✅ Clean-up complete."
@@ -27,7 +43,6 @@ pip install --upgrade pip setuptools wheel
 pip install -r requirements/dev.txt
 pip install -r requirements/docs.txt
 pip install -e .
-
 # Remove the Sphinx build cache specifically before building
 rm -rf docs/_build
 

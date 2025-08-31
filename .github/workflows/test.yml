@@ -12,21 +12,22 @@ permissions:
   id-token: write
 
 jobs:
-  # JOB 1: Run tests across multiple Sphinx versions
+# JOB 1: Run tests across multiple Sphinx and Python versions
   test:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        python-version: ['3.10', '3.12']
         sphinx-version: ["7.0", "7.4", "8.0", "8.2"]
 
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python 3.12
-      id: setup-python # Give the step an ID to reference its outputs
+    - name: Set up Python ${{ matrix.python-version }}
+      id: setup-python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.12'
+        python-version: ${{ matrix.python-version }}
 
     # Cache pip dependencies
     - name: Cache pip packages
@@ -71,7 +72,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-docs-${{ steps.setup-python-docs.outputs.python-version }}-${{ hashFiles('**/requirements/*.txt') }}
+          key: ${{ runner.os }}-cation warningpip-docs-${{ steps.setup-python-docs.outputs.python-version }}-${{ hashFiles('**/requirements/*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-docs-${{ steps.setup-python-docs.outputs.python-version }}-
       

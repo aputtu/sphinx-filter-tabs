@@ -279,8 +279,9 @@ Test Document
 @pytest.mark.sphinx('html')
 def test_configuration_theming(app: SphinxTestApp):
     """Test that theming configuration options work."""
-    app.config.filter_tabs_tab_highlight_color = '#ff0000'
-    app.config.filter_tabs_border_radius = '12px'
+    # Use the correct simplified config option name
+    app.config.filter_tabs_highlight_color = '#ff0000'
+    # Note: border_radius option was removed - it's now handled by CSS defaults
     
     content = """
 Test Document
@@ -298,8 +299,10 @@ Test Document
     container = soup.select_one('.sft-container')
     
     style = container.get('style', '')
-    assert '#ff0000' in style, "Custom highlight color should be applied"
-    assert '12px' in style, "Custom border radius should be applied"
+    assert '#ff0000' in style, f"Custom highlight color should be applied. Got: {style}"
+    
+    # Test that the highlight color CSS variable is set correctly
+    assert '--sft-highlight-color: #ff0000' in style, f"CSS custom property should be set. Got: {style}"
 
 
 @pytest.mark.sphinx('html')
@@ -420,3 +423,25 @@ Test Document
     except Exception:
         # If an exception was raised, that's also acceptable
         pass
+
+@pytest.mark.sphinx('html')
+def test_custom_legend_option(app: SphinxTestApp):
+    """Test that the :legend: option provides a custom legend."""
+    content = """
+Test Document
+=============
+
+.. filter-tabs::
+   :legend: My Custom Test Legend
+
+   .. tab:: One
+      Content One
+"""
+    app.srcdir.joinpath('index.rst').write_text(content)
+    app.build()
+    
+    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
+    
+    legend = soup.select_one('.sft-legend')
+    assert legend, "Legend should exist"
+    assert legend.get_text().strip() == "My Custom Test Legend"

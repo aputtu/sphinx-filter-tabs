@@ -15,11 +15,10 @@ This Sphinx extension provides a robust, accessible, and JavaScript-free way to 
 
 **Key Features:**
 
-* **No JavaScript:** The filtering is achieved with pure CSS for speed and compatibility.
-* **Some JavaScript:** Optional, progressive enhancement approach
+* **CSS First:** Core tab functionality is pure CSS for speed and compatibility, with optional JavaScript added for progressive enhancements like keyboard navigation.
 * **Accessible:** Full WAI-ARIA compliance
 * **Keyboard Navigation:** Arrow keys, Home/End, Enter/Space + Screen reader compatibility
-* **Customizable:** Easily theme colors and styles directly from your ``conf.py``.
+* **Customizable:** Easily theme color directly from your ``conf.py``.
 * **Graceful Fallback:** Renders as simple admonitions in non-HTML outputs like PDF/LaTeX.
 * **Select default tab:** Choose which tab to show by default.
 

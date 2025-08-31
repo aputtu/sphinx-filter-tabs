@@ -86,6 +86,7 @@
 /* Content area */
 .sft-content {
     padding: 20px;
+    flex-basis: 100%; /* Add this line */
 }
 
 /* Panels - hidden by default */

@@ -1,9 +1,7 @@
 # filter_tabs/extension.py
 """
 Core extension module for sphinx-filter-tabs.
-
-This file registers the directives, custom nodes, and connects Sphinx
-event handlers.
+Updated to use consolidated CSS approach.
 """
 
 from __future__ import annotations
@@ -39,10 +37,7 @@ logger = logging.getLogger(__name__)
 
 
 class TabDirective(Directive):
-    """
-    Handles the `.. tab::` directive, capturing its content and options.
-    Now uses TabArgumentParser for cleaner parsing logic.
-    """
+    """Handles the `.. tab::` directive, capturing its content and options."""
     has_content = True
     required_arguments = 1
     final_argument_whitespace = True
@@ -54,7 +49,7 @@ class TabDirective(Directive):
         
         # Validate context
         if not hasattr(env, 'sft_context') or not env.sft_context:
-            raise self.error("`tab` can only be used inside a `filter-tabs` directive.")
+           raise self.error("`tab` can only be used inside a `filter-tabs` directive.")
         
         # Parse tab argument using dedicated parser
         try:
@@ -75,14 +70,12 @@ class TabDirective(Directive):
 
 
 class FilterTabsDirective(Directive):
-    """
-    Handles the main `.. filter-tabs::` directive.
-    
-    Now uses TabData dataclass and validation.
-    """
+    """Handles the main `.. filter-tabs::` directive."""
     has_content = True
     required_arguments = 0
     optional_arguments = 0
+    # ADD a spec for the new :legend: option
+    option_spec = {'legend': directives.unchanged}
 
     def run(self) -> list[nodes.Node]:
         """Process the filter-tabs directive."""
@@ -98,6 +91,9 @@ class FilterTabsDirective(Directive):
         self.state.nested_parse(self.content, self.content_offset, temp_container)
         
         env.sft_context.pop()
+        
+        # GET the value of the new :legend: option
+        custom_legend = self.options.get('legend')
 
         # Separate general content from tabs using TabData
         general_content = []
@@ -117,8 +113,19 @@ class FilterTabsDirective(Directive):
                 general_content.append(node)
         
         # Validate tabs
+        if not tab_data_list:
+            error_message = (
+                "No `.. tab::` directives found inside `.. filter-tabs::`. "
+                "You must include at least one tab."
+            )
+            if general_content:
+                error_message += (
+                    " Some content was found, but it was not part of a `.. tab::` block."
+                )
+            raise self.error(error_message)
+
         try:
-            TabDataValidator.validate_tabs(tab_data_list)
+            TabDataValidator.validate_tabs(tab_data_list, skip_empty_check=True)
         except ValueError as e:
             raise self.error(str(e))
         
@@ -126,8 +133,8 @@ class FilterTabsDirective(Directive):
         if not any(tab.is_default for tab in tab_data_list):
             tab_data_list[0].is_default = True
         
-        # Create renderer with type-safe data
-        renderer = FilterTabsRenderer(self, tab_data_list, general_content)
+        # PASS the custom_legend value to the renderer
+        renderer = FilterTabsRenderer(self, tab_data_list, general_content, custom_legend=custom_legend)
         
         # Render based on builder
         if env.app.builder.name == 'html':
@@ -136,11 +143,11 @@ class FilterTabsDirective(Directive):
             return renderer.render_fallback()
 
 
+# ... (rest of the file is unchanged) ...
 def setup_collapsible_admonitions(app: Sphinx, doctree: nodes.document, docname: str):
     """Convert admonitions with 'collapsible' class to details/summary elements."""
-    config = FilterTabsConfig.from_sphinx_config(app.config)
-    
-    if not config.collapsible_enabled or app.builder.name != 'html':
+    # Simplified: always enabled for HTML builds, no config needed
+    if app.builder.name != 'html':
         return
         
     for node in list(doctree.findall(nodes.admonition)):
@@ -180,7 +187,7 @@ def _get_html_attrs(node: nodes.Element) -> Dict[str, Any]:
     return attrs
 
 
-# --- HTML Visitor Functions (unchanged) ---
+# --- HTML Visitor Functions ---
 def visit_container_node(self: HTML5Translator, node: ContainerNode) -> None:
     self.body.append(self.starttag(node, 'div', **_get_html_attrs(node)))
 
@@ -223,7 +230,7 @@ def depart_label_node(self: HTML5Translator, node: LabelNode) -> None:
 
 def visit_panel_node(self: HTML5Translator, node: PanelNode) -> None:
     attrs = _get_html_attrs(node)
-    for key in ['role', 'aria-labelledby', 'tabindex', 'data-filter', 'data-tab']:
+    for key in ['role', 'aria-labelledby', 'tabindex']:
         if key in node.attributes:
             attrs[key] = node[key]
     self.body.append(self.starttag(node, 'div', CLASS="sft-panel", **attrs))
@@ -256,34 +263,29 @@ def copy_static_files(app: Sphinx):
     dest_dir = Path(app.outdir) / "_static"
     dest_dir.mkdir(parents=True, exist_ok=True)
     
-    for file_path in static_source_dir.glob("*.css"):
-        shutil.copy(file_path, dest_dir)
-    for file_path in static_source_dir.glob("*.js"):
-        shutil.copy(file_path, dest_dir)
+    # Only copy the consolidated CSS file
+    css_file = static_source_dir / "filter_tabs.css"
+    if css_file.exists():
+        shutil.copy(css_file, dest_dir)
+    
+    # Copy JS file if it exists
+    js_file = static_source_dir / "filter_tabs.js"
+    if js_file.exists():
+        shutil.copy(js_file, dest_dir)
 
 
 def setup(app: Sphinx) -> Dict[str, Any]:
-    """Setup the Sphinx extension."""
-    # Basic theming configuration
-    app.add_config_value('filter_tabs_tab_highlight_color', '#007bff', 'html', [str])
-    app.add_config_value('filter_tabs_tab_background_color', '#f0f0f0', 'html', [str])
-    app.add_config_value('filter_tabs_tab_font_size', '1em', 'html', [str])
-    app.add_config_value('filter_tabs_border_radius', '8px', 'html', [str])
+    """Setup the Sphinx extension with minimal configuration."""
     
-    # Feature configuration
+    # ONLY essential configuration options (down from 9 to 2)
+    app.add_config_value('filter_tabs_highlight_color', '#007bff', 'html', [str])
     app.add_config_value('filter_tabs_debug_mode', False, 'html', [bool])
-    app.add_config_value('filter_tabs_collapsible_enabled', True, 'html', [bool])
-    app.add_config_value('filter_tabs_collapsible_accent_color', '#17a2b8', 'html', [str])
     
-    # Accessibility configuration
-    app.add_config_value('filter_tabs_keyboard_navigation', True, 'html', [bool])
-    app.add_config_value('filter_tabs_announce_changes', True, 'html', [bool])
-    
-    # Add CSS and JS files
+    # Add static files
     app.add_css_file('filter_tabs.css')
     app.add_js_file('filter_tabs.js')
     
-    # Register custom nodes
+    # Register custom nodes (keep existing node registration code)
     app.add_node(ContainerNode, html=(visit_container_node, depart_container_node))
     app.add_node(FieldsetNode, html=(visit_fieldset_node, depart_fieldset_node))
     app.add_node(LegendNode, html=(visit_legend_node, depart_legend_node))

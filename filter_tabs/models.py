@@ -1,9 +1,7 @@
 # filter_tabs/models.py
 """
 Data models for the sphinx-filter-tabs extension.
-
-This module provides type-safe data structures to replace dictionaries
-and improve code maintainability.
+Simplified to reduce complexity while maintaining functionality.
 """
 
 from dataclasses import dataclass, field
@@ -40,82 +38,31 @@ class TabData:
 @dataclass
 class FilterTabsConfig:
     """
-    Configuration settings for filter-tabs rendering.
-    
-    This centralizes all configuration access and provides defaults.
+    Simplified configuration settings for filter-tabs rendering.
+    Reduced from 9 options to 2 essential ones.
     """
-    # Theming
-    tab_highlight_color: str = '#007bff'
-    tab_background_color: str = '#f0f0f0' 
-    tab_font_size: str = '1em'
-    border_radius: str = '8px'
+    # Essential theming - only the highlight color is commonly customized
+    highlight_color: str = '#007bff'
     
-    # Features
+    # Development option
     debug_mode: bool = False
-    collapsible_enabled: bool = True
-    collapsible_accent_color: str = '#17a2b8'
-    
-    # Accessibility
-    keyboard_navigation: bool = True
-    announce_changes: bool = True
     
     @classmethod
     def from_sphinx_config(cls, app_config) -> 'FilterTabsConfig':
-        """
-        Create a FilterTabsConfig from Sphinx app.config.
-        
-        Args:
-            app_config: Sphinx application config object
-            
-        Returns:
-            FilterTabsConfig instance with values from Sphinx config
-        """
+        """Create a FilterTabsConfig from Sphinx app.config."""
         return cls(
-            tab_highlight_color=getattr(
-                app_config, 'filter_tabs_tab_highlight_color', cls.tab_highlight_color
-            ),
-            tab_background_color=getattr(
-                app_config, 'filter_tabs_tab_background_color', cls.tab_background_color
-            ),
-            tab_font_size=getattr(
-                app_config, 'filter_tabs_tab_font_size', cls.tab_font_size
-            ),
-            border_radius=getattr(
-                app_config, 'filter_tabs_border_radius', cls.border_radius
+            highlight_color=getattr(
+                app_config, 'filter_tabs_highlight_color', cls.highlight_color
             ),
             debug_mode=getattr(
                 app_config, 'filter_tabs_debug_mode', cls.debug_mode
             ),
-            collapsible_enabled=getattr(
-                app_config, 'filter_tabs_collapsible_enabled', cls.collapsible_enabled
-            ),
-            collapsible_accent_color=getattr(
-                app_config, 'filter_tabs_collapsible_accent_color', cls.collapsible_accent_color
-            ),
-            keyboard_navigation=getattr(
-                app_config, 'filter_tabs_keyboard_navigation', cls.keyboard_navigation
-            ),
-            announce_changes=getattr(
-                app_config, 'filter_tabs_announce_changes', cls.announce_changes
-            ),
         )
     
     def to_css_properties(self) -> str:
-        """
-        Convert config to CSS custom properties string.
-        
-        Returns:
-            CSS custom properties as a style attribute value
-        """
-        properties = {
-            "--sft-border-radius": self.border_radius,
-            "--sft-tab-background": self.tab_background_color,
-            "--sft-tab-font-size": self.tab_font_size,
-            "--sft-tab-highlight-color": self.tab_highlight_color,
-            "--sft-collapsible-accent-color": self.collapsible_accent_color,
-        }
-        
-        return "; ".join([f"{key}: {value}" for key, value in properties.items()])
+        """Convert config to CSS custom properties string."""
+        # Generate CSS variables - the highlight color drives all other colors
+        return f"--sft-highlight-color: {self.highlight_color};"
 
 
 @dataclass

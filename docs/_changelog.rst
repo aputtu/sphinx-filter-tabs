@@ -1,6 +1,19 @@
 Changelog
 =========
 
+
+
+**Version 1.1.0** 
+
+- Changed
+   * Majorly refactored the entire codebase for simplicity and maintainability.
+   * Simplified configuration options down to the essentials.
+   * Improved error messages for missing tabs.
+
+- Added
+   * Added focus management to panels via JavaScript for better accessibility.
+   * Added more detailed debug logging.
+
 **Version 1.0.0** (Upcoming, we're still in beta)
 
 * **BREAKING CHANGE**: Simplified directive syntax - ``filter-tabs`` no longer requires tab names as arguments

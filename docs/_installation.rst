@@ -9,12 +9,7 @@ First, install the extension package using pip:
 .. code-block:: bash
 
    pip install sphinx-filter-tabs
-
-Or if you're using conda:
-
-.. code-block:: bash
-
-   conda install -c conda-forge sphinx-filter-tabs
+      
 
 Enabling the Extension
 ----------------------
@@ -38,19 +33,17 @@ to your ``conf.py``:
 
 .. code-block:: python
 
-   # Theming options
-   filter_tabs_tab_highlight_color = '#007bff'  # Active tab highlight
-   filter_tabs_tab_background_color = '#f0f0f0'  # Tab bar background
-   filter_tabs_tab_font_size = '1em'            # Tab text size
-   filter_tabs_border_radius = '8px'            # Container corners
+   # Essential theming
+   filter_tabs_highlight_color = '#007bff'  # Active tab highlight color
    
-   # Accessibility options
-   filter_tabs_keyboard_navigation = True       # Enable arrow key navigation
-   filter_tabs_announce_changes = True          # Screen reader announcements
-   
-   # Other options
-   filter_tabs_collapsible_enabled = True       # Enable collapsible sections
-   filter_tabs_debug_mode = False               # Debug logging
+   # Development option
+   filter_tabs_debug_mode = False           # Enable debug logging
+
+.. only:: latex
+
+   .. raw:: latex
+
+      \newpage
 
 Verifying Installation
 ----------------------
