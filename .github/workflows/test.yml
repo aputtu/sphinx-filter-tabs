@@ -12,7 +12,7 @@ permissions:
   id-token: write
 
 jobs:
-# JOB 1: Run tests across multiple Sphinx and Python versions
+  # JOB 1: Run tests across multiple Sphinx and Python versions
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -20,6 +20,10 @@ jobs:
       matrix:
         python-version: ['3.10', '3.12']
         sphinx-version: ["7.0", "7.4", "8.0", "8.2"]
+        # Add this 'exclude' block to omit the incompatible combination
+        exclude:
+          - python-version: '3.10'
+            sphinx-version: '8.2'
 
     steps:
     - uses: actions/checkout@v4
@@ -48,6 +52,7 @@ jobs:
         pip install -e .
     - name: Run Tests
       run: pytest
+
 
   # JOB 2: Build and deploy docs, runs only ONCE after ALL tests pass
   deploy-docs:
