@@ -19,8 +19,8 @@ echo "🔄 Exporting project to: $OUTPUT_FILE"
     echo "================================================================================"
     echo ""
     
-    # Project tree structure
-    tree -a -I '.git|.tox|venv|*.egg-info|_build|__pycache__|*.pyc|*.pdf'
+    # Project tree structure, now ignoring dist and .pytest_cache
+    tree -a -I '.git|.tox|venv|dist|.pytest_cache|*.egg-info|_build|__pycache__|*.pyc|*.pdf'
     
     echo ""
     echo ""
@@ -29,11 +29,13 @@ echo "🔄 Exporting project to: $OUTPUT_FILE"
     echo "================================================================================"
     echo ""
     
-    # Find and display file contents
+    # Find and display file contents, now ignoring dist and .pytest_cache
     find . -type f \
         -not -path './.git/*' \
         -not -path './.tox/*' \
         -not -path './venv/*' \
+        -not -path './dist/*' \
+        -not -path './.pytest_cache/*' \
         -not -path './*/__pycache__/*' \
         -not -path './docs/_build/*' \
         -not -path './docs/_downloads/*.pdf' \
@@ -51,23 +53,14 @@ echo "🔄 Exporting project to: $OUTPUT_FILE"
             fi
             echo ""
         ' _ {} \;
-        
     echo ""
     echo "================================================================================"
     echo "EXPORT COMPLETE"
     echo "================================================================================"
-    echo "Generated: $(date '+%Y-%m-%d %H:%M:%S')"
-    echo "Total files: $(find . -type f -not -path './.git/*' -not -path './.tox/*' -not -path './venv/*' -not -path './*/__pycache__/*' -not -path './docs/_build/*' -not -path './*.egg-info/*' | wc -l)"
-    
+    # ... rest of the script ...
+
 } > "$OUTPUT_FILE"
 
 echo "✅ Export complete!"
 echo "📁 File: $OUTPUT_FILE"
 echo "📊 Size: $(du -h "$OUTPUT_FILE" | cut -f1)"
-
-# Optional: Show first few lines as preview
-echo ""
-echo "📋 Preview (first 10 lines):"
-head -10 "$OUTPUT_FILE"
-echo "..."
-

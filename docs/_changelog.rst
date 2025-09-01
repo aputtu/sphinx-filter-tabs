@@ -1,6 +1,13 @@
 Changelog
 =========
 
+Version 1.2.2 (2025-09-01)
+--------------------------
+
+* Remove obsolete scripts complete_cleanup.sh and test_cleanup.sh
+* Improve export-project.sh, which now exclude dist and .pytest_cache
+
+
 Version 1.2.1 (2025-09-01)
 --------------------------
 
