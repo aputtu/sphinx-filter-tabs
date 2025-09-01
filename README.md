@@ -7,8 +7,6 @@
 
 A robust Sphinx extension for creating accessible, JavaScript-free, filterable content tabs.
 
-A robust Sphinx extension for creating accessible, JavaScript-free, filterable content tabs.
-
 **📖 View extension and documentation at: https://aputtu.github.io/sphinx-filter-tabs/**
 
 This extension provides `filter-tabs` and `tab` directives to create user-friendly, switchable content blocks, ideal for showing code examples in multiple languages or instructions for different platforms.

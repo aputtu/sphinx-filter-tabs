@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 1.2.1 (2025-09-01)
+--------------------------
+
+Fixes multiple issues from code review, improving test 
+robustness, documentation accuracy, and CI stability.
+
 
 Version 1.2.0 (2025-08-31)
 --------------------------

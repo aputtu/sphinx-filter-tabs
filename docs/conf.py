@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.abspath('..'))
 project = 'Sphinx Extension - Filter Tabs'
 copyright = '2025, Aputsiak Niels Janussen'
 author = 'Aputsiak Niels Janussen'
-release = '1.2.0'
+release = '1.2.1'
 
 # -- General configuration ---------------------------------------------------
 extensions = [
@@ -37,10 +37,5 @@ latex_documents = [
 ]
 
 # -- Options for filter-tabs extension ---------------------------------------
-filter_tabs_use_improved_accessibility = True
-
-filter_tabs_tab_highlight_color = "#d45234"
-filter_tabs_border_radius = "4px"
+filter_tabs_highlight_color = "#d45234"
 filter_tabs_debug_mode = True
-filter_tabs_keyboard_navigation = True
-filter_tabs_announce_changes = True

@@ -281,7 +281,6 @@ def test_configuration_theming(app: SphinxTestApp):
     """Test that theming configuration options work."""
     # Use the correct simplified config option name
     app.config.filter_tabs_highlight_color = '#ff0000'
-    # Note: border_radius option was removed - it's now handled by CSS defaults
     
     content = """
 Test Document
@@ -299,8 +298,6 @@ Test Document
     container = soup.select_one('.sft-container')
     
     style = container.get('style', '')
-    assert '#ff0000' in style, f"Custom highlight color should be applied. Got: {style}"
-    
     # Test that the highlight color CSS variable is set correctly
     assert '--sft-highlight-color: #ff0000' in style, f"CSS custom property should be set. Got: {style}"
 
@@ -390,7 +387,7 @@ Test Document
 
 @pytest.mark.sphinx('html')
 def test_error_handling_no_tabs(app: SphinxTestApp):
-    """Test that filter-tabs without any tab directives shows an error."""
+    """Test that filter-tabs without any tab directives logs an error."""
     content = """
 Test Document
 =============
@@ -401,28 +398,12 @@ Test Document
 """
     app.srcdir.joinpath('index.rst').write_text(content)
     
-    # Build and capture status
+    # Run the build and expect Sphinx to log an error
     app.build()
     
-    # Check that warnings/errors were generated
-    # The error appears in the warning stream, not as an exception
-    warning_text = app._warning.getvalue() if hasattr(app, '_warning') else ""
-    
-    # Alternative: check the build log for the error
-    build_succeeded = True
-    try:
-        # The build may succeed but generate an error/warning
-        output = app.outdir / 'index.html'
-        if output.exists():
-            # Check if the output contains error indication
-            content = output.read_text()
-            # If no tabs were processed, there shouldn't be a .sft-container
-            soup = BeautifulSoup(content, 'html.parser')
-            containers = soup.select('.sft-container')
-            assert len(containers) == 0, "Should not create containers when no tabs are found"
-    except Exception:
-        # If an exception was raised, that's also acceptable
-        pass
+    # Check the captured warnings/errors for our specific message
+    warnings = app._warning.getvalue()
+    assert "No `.. tab::` directives found inside `.. filter-tabs::`" in warnings
 
 @pytest.mark.sphinx('html')
 def test_custom_legend_option(app: SphinxTestApp):

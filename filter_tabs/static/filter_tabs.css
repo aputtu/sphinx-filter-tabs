@@ -63,15 +63,15 @@
 
 /* Active tab styling */
 .sft-radio-group input[type="radio"]:checked + label {
-    color: var(--sft-tab-highlight-color, #007bff);
-    border-bottom-color: var(--sft-tab-highlight-color, #007bff);
+    color: var(--sft-highlight-color, #007bff);
+    border-bottom-color: var(--sft-highlight-color, #007bff);
     background: white;
     font-weight: 600;
 }
 
 /* Focus styling for keyboard navigation */
 .sft-radio-group input[type="radio"]:focus + label {
-    outline: 2px solid var(--sft-tab-highlight-color, #007bff);
+    outline: 2px solid var(--sft-highlight-color, #007bff);
     outline-offset: 2px;
     box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.25);
     z-index: 1;
@@ -97,7 +97,7 @@
 
 /* Focus styling for panels */
 .sft-panel:focus {
-    outline: 2px solid var(--sft-tab-highlight-color, #007bff);
+    outline: 2px solid var(--sft-highlight-color, #007bff);
     outline-offset: -2px;
     border-radius: 4px;
 }

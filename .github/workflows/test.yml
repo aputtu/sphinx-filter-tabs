@@ -77,7 +77,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-cation warningpip-docs-${{ steps.setup-python-docs.outputs.python-version }}-${{ hashFiles('**/requirements/*.txt') }}
+          key: ${{ runner.os }}-pip-docs-${{ steps.setup-python-docs.outputs.python-version }}-${{ hashFiles('**/requirements/*.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-docs-${{ steps.setup-python-docs.outputs.python-version }}-
       
