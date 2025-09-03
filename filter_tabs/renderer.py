@@ -46,31 +46,31 @@ class ContentTypeInferrer:
         (['development', 'staging', 'production', 'test', 'local'], 'environment'),
         (['source', 'binary', 'docker', 'manual', 'automatic'], 'installation method'),
     ]
-    
+
     @classmethod
     def infer_type(cls, tab_names: List[str]) -> str:
         """
         Infer content type from a list of tab names.
-        
+
         Args:
             tab_names: List of tab names to analyze
-            
+
         Returns:
             Inferred content type string (e.g., 'programming language', 'operating system')
         """
         lower_names = [name.lower() for name in tab_names]
-        
+
         # First pass: exact matches
         for keywords, content_type in cls.PATTERNS:
             if any(name in keywords for name in lower_names):
                 return content_type
-        
+
         # Second pass: substring matches
         for keywords, content_type in cls.PATTERNS:
             for name in lower_names:
                 if any(keyword in name for keyword in keywords):
                     return content_type
-        
+
         # Default fallback
         return 'option'
 
@@ -92,53 +92,52 @@ class FilterTabsRenderer:
         self.tab_data = tab_data
         self.general_content = general_content
         self.custom_legend = custom_legend
-        
+
         # 1. Load configuration first
         self.config = FilterTabsConfig.from_sphinx_config(self.app.config)
-        
+
         # 2. Safely initialize the counter on the environment if it doesn't exist
         if not hasattr(self.env, 'filter_tabs_counter'):
             self.env.filter_tabs_counter = 0
-            
+
         # 3. Increment the counter for this new tab group
         self.env.filter_tabs_counter += 1
-        
+
         # 4. Generate the unique group ID and the ID generator instance
         self.group_id = f"filter-group-{self.env.filter_tabs_counter}"
         self.id_gen = IDGenerator(self.group_id)
-        
+
         # 5. Perform debug logging now that config and group_id are set
         if self.config.debug_mode:
             logger.info(f"Initialized new tab group with id: '{self.group_id}'")
 
     def render_html(self) -> List[nodes.Node]:
-        """Render HTML with a browser-compatible CSS approach."""
+        """Render HTML with CSS-only approach (no inline styles)."""
         if self.config.debug_mode:
             logger.info(f"Rendering filter-tabs group {self.group_id}")
-
-        css_node = self._generate_compatible_css()
 
         container_attrs = self._get_container_attributes()
         container = ContainerNode(**container_attrs)
 
         fieldset = self._create_fieldset()
         container.children = [fieldset]
-        
-        return [css_node, container]
+
+        # FIXED: No more inline CSS generation
+        return [container]
 
     def render_fallback(self) -> List[nodes.Node]:
         """Render for non-HTML builders (e.g., LaTeX)."""
         output_nodes: List[nodes.Node] = []
-        
+
         if self.general_content:
             output_nodes.extend(copy.deepcopy(self.general_content))
-        
+
         for tab in self.tab_data:
             admonition = nodes.admonition()
             admonition += nodes.title(text=tab.name)
             admonition.extend(copy.deepcopy(tab.content))
             output_nodes.append(admonition)
-        
+
         return output_nodes
 
     def _get_container_attributes(self) -> Dict[str, Any]:
@@ -150,42 +149,31 @@ class FilterTabsRenderer:
             'style': self.config.to_css_properties()
         }
 
-    def _generate_compatible_css(self) -> nodes.raw:
-        """Generate CSS using sibling selectors to show/hide panels."""
-        css_rules = []
-        for i, tab in enumerate(self.tab_data):
-            radio_id = self.id_gen.radio_id(i)
-            panel_id = self.id_gen.panel_id(i)
-            css_rules.append(
-                f"#{radio_id}:checked ~ .{SFT_CONTENT} #{panel_id} {{ display: block; }}"
-            )
-        
-        css_content = "\n".join(css_rules)
-        return nodes.raw(text=f"<style>\n{css_content}\n</style>", format='html')
+    # REMOVED: _generate_compatible_css method - no longer needed!
 
     def _create_fieldset(self) -> FieldsetNode:
         """Create the main fieldset containing the legend, radio buttons, and panels."""
         fieldset = FieldsetNode(role="radiogroup")
-        
+
         fieldset += self._create_legend()
-        
+
         radio_group = ContainerNode(classes=[SFT_RADIO_GROUP])
         self._populate_radio_group(radio_group)
-        
+
         content_area = ContainerNode(classes=[SFT_CONTENT])
         self._populate_content_area(content_area)
-        
+
         # This is the fix: place the content_area inside the radio_group.
         radio_group += content_area
-        
+
         fieldset += radio_group
-        
+
         return fieldset
 
     def _create_legend(self) -> LegendNode:
         """Create a meaningful, visible legend for the tab group."""
         legend = LegendNode(classes=[SFT_LEGEND], ids=[self.id_gen.legend_id()])
-        
+
         # Use the custom legend if it exists
         if self.custom_legend:
             legend_text = self.custom_legend
@@ -194,14 +182,14 @@ class FilterTabsRenderer:
             tab_names = [tab.name for tab in self.tab_data]
             content_type = ContentTypeInferrer.infer_type(tab_names)
             legend_text = f"Choose {content_type}: {', '.join(tab_names)}"
-        
+
         legend += nodes.Text(legend_text)
         return legend
 
     def _populate_radio_group(self, radio_group: ContainerNode) -> None:
         """Create and add all radio buttons and labels to the radio group container."""
         default_index = next((i for i, tab in enumerate(self.tab_data) if tab.is_default), 0)
-     
+
         for i, tab in enumerate(self.tab_data):
             radio_group += self._create_radio_button(i, tab, is_checked=(i == default_index))
             radio_group += self._create_label(i, tab)
@@ -241,7 +229,7 @@ class FilterTabsRenderer:
             general_panel = PanelNode(classes=[SFT_PANEL], **{'data-filter': 'General'})
             general_panel.extend(copy.deepcopy(self.general_content))
             content_area += general_panel
-        
+
         for i, tab in enumerate(self.tab_data):
             content_area += self._create_tab_panel(i, tab)
 
@@ -250,7 +238,7 @@ class FilterTabsRenderer:
         panel_attrs = {
             'classes': [SFT_PANEL],
             'ids': [self.id_gen.panel_id(index)],
-            'role': 'region',
+            'role': 'tabpanel',
             'aria-labelledby': self.id_gen.radio_id(index),
             'tabindex': '0',
             'data-tab': tab.name.lower().replace(' ', '-')
@@ -258,4 +246,3 @@ class FilterTabsRenderer:
         panel = PanelNode(**panel_attrs)
         panel.extend(copy.deepcopy(tab.content))
         return panel
-    

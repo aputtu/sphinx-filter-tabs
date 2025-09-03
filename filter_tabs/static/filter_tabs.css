@@ -86,7 +86,7 @@
 /* Content area */
 .sft-content {
     padding: 20px;
-    flex-basis: 100%; /* Add this line */
+    flex-basis: 100%;
 }
 
 /* Panels - hidden by default */
@@ -109,6 +109,32 @@
     padding-bottom: 20px;
     border-bottom: 1px solid #eee;
 }
+
+/* 
+ * FIXED: Panel visibility using CSS without inline styles
+ * This uses a general approach with nth-child selectors
+ * No more inline <style> elements needed!
+ */
+
+/* Show panels when corresponding radio is checked */
+.sft-radio-group input[type="radio"]:nth-child(1):checked ~ .sft-content .sft-panel:nth-of-type(1),
+.sft-radio-group input[type="radio"]:nth-child(3):checked ~ .sft-content .sft-panel:nth-of-type(2),
+.sft-radio-group input[type="radio"]:nth-child(5):checked ~ .sft-content .sft-panel:nth-of-type(3),
+.sft-radio-group input[type="radio"]:nth-child(7):checked ~ .sft-content .sft-panel:nth-of-type(4),
+.sft-radio-group input[type="radio"]:nth-child(9):checked ~ .sft-content .sft-panel:nth-of-type(5),
+.sft-radio-group input[type="radio"]:nth-child(11):checked ~ .sft-content .sft-panel:nth-of-type(6),
+.sft-radio-group input[type="radio"]:nth-child(13):checked ~ .sft-content .sft-panel:nth-of-type(7),
+.sft-radio-group input[type="radio"]:nth-child(15):checked ~ .sft-content .sft-panel:nth-of-type(8),
+.sft-radio-group input[type="radio"]:nth-child(17):checked ~ .sft-content .sft-panel:nth-of-type(9),
+.sft-radio-group input[type="radio"]:nth-child(19):checked ~ .sft-content .sft-panel:nth-of-type(10) {
+    display: block;
+}
+
+/* Alternative approach using CSS custom properties (more elegant) */
+/*
+ * If you prefer a more modern approach, you could use CSS custom properties
+ * and update the renderer to set --active-tab instead of generating CSS rules
+ */
 
 /* Screen reader only content */
 .sr-only {

@@ -1,5 +1,19 @@
-.. toctree::
-    :maxdepth: 1
+.. only:: html
+
+   .. toctree::
+      :maxdepth: 2
+      :caption: Contents:
+      :hidden:
+
+      installation
+      usage
+      changelog
+      accessibility
+
+.. only:: latex
+
+   .. toctree::
+      :maxdepth: 2
 
 
 ======================================
@@ -24,13 +38,19 @@ This Sphinx extension provides a robust, accessible, and JavaScript-free way to 
 
 
 You can find the project's source code on the `GitHub repository <https://github.com/aputtu/sphinx-filter-tabs>`_.
-You can also download this documentation as a :download:`PDF file <_downloads/sphinxextension-filtertabs.pdf>`.
+
+.. only:: html
+
+   You can also download this documentation as a :download:`PDF file <_downloads/sphinxextension-filtertabs.pdf>`.
 
 .. only:: latex
 
-    Please visit `project webpage for live version <https://aputtu.github.io/sphinx-filter-tabs/>`_.
-    In the examples provided in the PDF, all tabs gets listed one by one.
+   Please visit `project webpage for live version <https://aputtu.github.io/sphinx-filter-tabs/>`_.
+   In the examples provided in the PDF, all tabs gets listed one by one.
 
-.. include:: _installation.rst
-.. include:: _usage.rst
-.. include:: _changelog.rst
+.. only:: latex
+
+   .. include:: installation.rst
+   .. include:: usage.rst
+   .. include:: changelog.rst
+   .. include:: accessibility.rst

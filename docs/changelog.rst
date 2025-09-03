@@ -1,6 +1,26 @@
 Changelog
 =========
 
+Version 1.2.3 (2025-09-03)
+--------------------------
+This commit addresses several issues found during accessibility audit.
+
+* ARIA Role Correction: The role for content panels has been corrected
+  from `region` to the more accurate `tabpanel` to better align with
+  WAI-ARIA patterns for tabbed interfaces.
+* Native Keyboard Navigation: Custom JavaScript keyboard handlers for*
+  arrow keys have been removed. The component now relies entirely on the 
+  native, predictable browser behavior for `radiogroup` navigation, 
+  simplifying the code and improving the user experience.
+* Valid HTML Output: Dynamic CSS generation has been refactored to 
+  resolve W3C validation errors. Inline `<style>` blocks are no longer
+  injected into the body. Instead, CSS rules are collected and added to
+  the document `<head>` via the `html-page-context` Sphinx event.
+* Accessibility Documentation: A new document, `_accessibility.rst`, has
+  been added. This file details the extension's accessibility
+  implementation strategy and explains the conscious design choice
+  to use the robust `radiogroup` pattern to ensure CSS-first functionality.
+
 Version 1.2.2 (2025-09-01)
 --------------------------
 
@@ -30,14 +50,14 @@ First Production/Stable release.
 Version 1.1.0b (2025-08-30)
 ---------------------------
 
-Changed
-^^^^^^^
+**Changed**
+
 * Majorly refactored the entire codebase for simplicity and maintainability.
 * Simplified configuration options down to the essentials.
 * Improved error messages for missing tabs.
 
-Added
-^^^^^
+**Added**
+
 * Added focus management to panels via JavaScript for better accessibility.
 * Added more detailed debug logging.
 
