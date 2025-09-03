@@ -96,6 +96,7 @@ jobs:
             texlive-latex-recommended \
             texlive-latex-extra \
             texlive-fonts-recommended \
+            tex-gyre \
             latexmk
       
       - name: Install documentation dependencies
