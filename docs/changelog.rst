@@ -1,6 +1,12 @@
 Changelog
 =========
 
+Version 1.2.4 (2025-09-03)
+--------------------------
+
+Configuration to automate and simplify release process.
+
+
 Version 1.2.3 (2025-09-03)
 --------------------------
 This commit addresses several issues found during accessibility audit.
