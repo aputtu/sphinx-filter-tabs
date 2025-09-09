@@ -29,7 +29,9 @@ This Sphinx extension provides a robust, accessible, and JavaScript-free way to 
 
 **Key Features:**
 
-* **CSS First:** Core tab functionality is pure CSS for speed and compatibility, with optional JavaScript added for progressive enhancements like keyboard navigation.
+**CSS-First Design**: This extension works entirely with CSS and semantic HTML, 
+requiring no JavaScript for core functionality. This ensures maximum compatibility,
+performance, and reliability across all environments.
 * **Accessible:** Full WAI-ARIA compliance
 * **Keyboard Navigation:** Arrow keys, Home/End, Enter/Space + Screen reader compatibility
 * **Customizable:** Easily theme color directly from your ``conf.py``.

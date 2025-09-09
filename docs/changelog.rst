@@ -1,6 +1,18 @@
 Changelog
 =========
 
+Version 1.2.6 (2025-09-09)
+---------------------------
+
+**Architecture Change**: Transition to CSS-Only Implementation
+
+- **BREAKING**: Removed JavaScript file and all JS-dependent functionality
+- Fixed panel visibility issues through improved CSS selector approach
+- Enhanced accessibility with native form control behavior
+- Simplified maintenance by eliminating JavaScript dependencies
+- Improved compatibility with restrictive environments (CSP, JS-disabled)
+
+
 Version 1.2.5 (2025-09-04)
 --------------------------
 

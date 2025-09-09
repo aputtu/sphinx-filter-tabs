@@ -149,8 +149,6 @@ class FilterTabsRenderer:
             'style': self.config.to_css_properties()
         }
 
-    # REMOVED: _generate_compatible_css method - no longer needed!
-
     def _create_fieldset(self) -> FieldsetNode:
         """Create the main fieldset containing the legend, radio buttons, and panels."""
         fieldset = FieldsetNode(role="radiogroup")
@@ -196,13 +194,16 @@ class FilterTabsRenderer:
             radio_group += self._create_screen_reader_description(i, tab)
 
     def _create_radio_button(self, index: int, tab: TabData, is_checked: bool) -> RadioInputNode:
-        """Create a single radio button input."""
+        """Create a single radio button input with data attribute."""
         radio = RadioInputNode(
             classes=['sr-only'],
             type='radio',
             name=self.group_id,
             ids=[self.id_gen.radio_id(index)],
-            **{'aria-describedby': self.id_gen.desc_id(index)}
+            **{
+                'aria-describedby': self.id_gen.desc_id(index),
+                'data-tab-index': str(index)  # FIXED: Add data attribute
+            }
         )
         if tab.aria_label:
             radio['aria-label'] = tab.aria_label
@@ -224,9 +225,16 @@ class FilterTabsRenderer:
         return description_node
 
     def _populate_content_area(self, content_area: ContainerNode) -> None:
-        """Create and add all general and tab-specific content panels."""
+        """Create and add all general and tab-specific content panels with accessibility enhancements."""
         if self.general_content:
-            general_panel = PanelNode(classes=[SFT_PANEL], **{'data-filter': 'General'})
+            general_panel = PanelNode(
+                classes=[SFT_PANEL], 
+                **{
+                    'data-filter': 'General',
+                    'aria-label': 'General information',
+                    'role': 'region'
+                }
+            )
             general_panel.extend(copy.deepcopy(self.general_content))
             content_area += general_panel
 
@@ -234,15 +242,17 @@ class FilterTabsRenderer:
             content_area += self._create_tab_panel(i, tab)
 
     def _create_tab_panel(self, index: int, tab: TabData) -> PanelNode:
-        """Create a single content panel for a tab."""
+        """Create a single content panel for a tab - CSS only version."""
         panel_attrs = {
             'classes': [SFT_PANEL],
             'ids': [self.id_gen.panel_id(index)],
             'role': 'tabpanel',
             'aria-labelledby': self.id_gen.radio_id(index),
-            'tabindex': '0',
-            'data-tab': tab.name.lower().replace(' ', '-')
+            'tabindex': '0',  # Keep for keyboard accessibility
+            'data-tab': tab.name.lower().replace(' ', '-'),
+            'data-tab-index': str(index)
         }
         panel = PanelNode(**panel_attrs)
         panel.extend(copy.deepcopy(tab.content))
         return panel
+    

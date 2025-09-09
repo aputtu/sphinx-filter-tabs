@@ -1,4 +1,4 @@
-/* Sphinx Filter Tabs - Simplified Accessibility-First Stylesheet */
+/* Sphinx Filter Tabs - Enhanced CSS with improved accessibility */
 
 /* Main container */
 .sft-container {
@@ -95,11 +95,39 @@
     outline: none;
 }
 
-/* Focus styling for panels */
+/* Enhanced focus styling for CSS-only version */
 .sft-panel:focus {
-    outline: 2px solid var(--sft-highlight-color, #007bff);
-    outline-offset: -2px;
+    outline: 3px solid var(--sft-highlight-color, #007bff);
+    outline-offset: 2px;
     border-radius: 4px;
+    background: rgba(0, 123, 255, 0.05);
+    /* Ensure smooth transition */
+    transition: background-color 0.2s ease;
+}
+
+/* Visual focus indicator for better UX */
+.sft-panel:focus::before {
+    content: "→ ";
+    color: var(--sft-highlight-color, #007bff);
+    font-weight: bold;
+    margin-right: 0.5em;
+}
+
+/* Improve screen reader flow for inline formatting */
+strong, b, em, i {
+    speak: normal;
+}
+
+/* Ensure tab panels are easily discoverable when focused */
+.sft-panel[role="tabpanel"]:focus {
+    position: relative;
+    z-index: 1;
+}
+
+/* ENHANCED: Focus styling for content within panels */
+.sft-panel:focus-within {
+    outline: 1px solid var(--sft-highlight-color, #007bff);
+    outline-offset: -1px;
 }
 
 /* General content panel - always visible */
@@ -110,31 +138,71 @@
     border-bottom: 1px solid #eee;
 }
 
-/* 
- * FIXED: Panel visibility using CSS without inline styles
- * This uses a general approach with nth-child selectors
- * No more inline <style> elements needed!
- */
-
-/* Show panels when corresponding radio is checked */
-.sft-radio-group input[type="radio"]:nth-child(1):checked ~ .sft-content .sft-panel:nth-of-type(1),
-.sft-radio-group input[type="radio"]:nth-child(3):checked ~ .sft-content .sft-panel:nth-of-type(2),
-.sft-radio-group input[type="radio"]:nth-child(5):checked ~ .sft-content .sft-panel:nth-of-type(3),
-.sft-radio-group input[type="radio"]:nth-child(7):checked ~ .sft-content .sft-panel:nth-of-type(4),
-.sft-radio-group input[type="radio"]:nth-child(9):checked ~ .sft-content .sft-panel:nth-of-type(5),
-.sft-radio-group input[type="radio"]:nth-child(11):checked ~ .sft-content .sft-panel:nth-of-type(6),
-.sft-radio-group input[type="radio"]:nth-child(13):checked ~ .sft-content .sft-panel:nth-of-type(7),
-.sft-radio-group input[type="radio"]:nth-child(15):checked ~ .sft-content .sft-panel:nth-of-type(8),
-.sft-radio-group input[type="radio"]:nth-child(17):checked ~ .sft-content .sft-panel:nth-of-type(9),
-.sft-radio-group input[type="radio"]:nth-child(19):checked ~ .sft-content .sft-panel:nth-of-type(10) {
+/* Panel visibility using data attributes */
+.sft-radio-group input[type="radio"][data-tab-index="0"]:checked ~ .sft-content .sft-panel[data-tab-index="0"],
+.sft-radio-group input[type="radio"][data-tab-index="1"]:checked ~ .sft-content .sft-panel[data-tab-index="1"],
+.sft-radio-group input[type="radio"][data-tab-index="2"]:checked ~ .sft-content .sft-panel[data-tab-index="2"],
+.sft-radio-group input[type="radio"][data-tab-index="3"]:checked ~ .sft-content .sft-panel[data-tab-index="3"],
+.sft-radio-group input[type="radio"][data-tab-index="4"]:checked ~ .sft-content .sft-panel[data-tab-index="4"],
+.sft-radio-group input[type="radio"][data-tab-index="5"]:checked ~ .sft-content .sft-panel[data-tab-index="5"],
+.sft-radio-group input[type="radio"][data-tab-index="6"]:checked ~ .sft-content .sft-panel[data-tab-index="6"],
+.sft-radio-group input[type="radio"][data-tab-index="7"]:checked ~ .sft-content .sft-panel[data-tab-index="7"],
+.sft-radio-group input[type="radio"][data-tab-index="8"]:checked ~ .sft-content .sft-panel[data-tab-index="8"],
+.sft-radio-group input[type="radio"][data-tab-index="9"]:checked ~ .sft-content .sft-panel[data-tab-index="9"] {
     display: block;
 }
 
-/* Alternative approach using CSS custom properties (more elegant) */
-/*
- * If you prefer a more modern approach, you could use CSS custom properties
- * and update the renderer to set --active-tab instead of generating CSS rules
- */
+/* ENHANCED: Accessibility improvements for content within panels */
+
+/* Make paragraphs within panels more accessible */
+.sft-panel p {
+    margin: 0.75em 0;
+    line-height: 1.5;
+}
+
+.sft-panel p:first-child {
+    margin-top: 0;
+}
+
+.sft-panel p:last-child {
+    margin-bottom: 0;
+}
+
+/* Enhanced code block accessibility */
+.sft-panel .highlight pre,
+.sft-panel code {
+    /* Ensure code blocks are focusable and readable */
+    border-radius: 4px;
+    position: relative;
+}
+
+.sft-panel .highlight pre:focus,
+.sft-panel code:focus {
+    outline: 2px solid var(--sft-highlight-color, #007bff);
+    outline-offset: 2px;
+    /* Ensure the content is announced to screen readers */
+    z-index: 1;
+}
+
+/* Make lists more accessible */
+.sft-panel ul,
+.sft-panel ol {
+    margin: 0.75em 0;
+    padding-left: 2em;
+}
+
+.sft-panel li {
+    margin: 0.25em 0;
+    line-height: 1.4;
+}
+
+/* Enhanced blockquote accessibility */
+.sft-panel blockquote {
+    margin: 1em 0;
+    padding: 0.5em 1em;
+    border-left: 4px solid #ddd;
+    background: #f9f9f9;
+}
 
 /* Screen reader only content */
 .sr-only {
@@ -147,6 +215,23 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
+}
+
+/* ENHANCED: Skip link for better keyboard navigation */
+.sft-container .skip-to-content {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: var(--sft-highlight-color, #007bff);
+    color: white;
+    padding: 8px;
+    text-decoration: none;
+    border-radius: 4px;
+    z-index: 1000;
+}
+
+.sft-container .skip-to-content:focus {
+    top: 6px;
 }
 
 /* Collapsible sections */
@@ -190,14 +275,22 @@
     padding: 15px; 
 }
 
-/* High contrast mode support */
+/* ENHANCED: High contrast mode support with better visibility */
 @media (prefers-contrast: high) {
     .sft-radio-group input[type="radio"]:checked + label {
         border-bottom-width: 4px;
+        background: #000;
+        color: #fff;
     }
     
     .sft-radio-group input[type="radio"]:focus + label {
         box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.8);
+        outline: 3px solid #fff;
+    }
+    
+    .sft-panel:focus {
+        outline: 3px solid #000;
+        background: #fff;
     }
 }
 
@@ -206,5 +299,26 @@
     .sft-radio-group label,
     .custom-arrow {
         transition: none;
+    }
+}
+
+/* ENHANCED: Screen reader specific improvements */
+@media (prefers-reduced-motion: reduce) {
+    /* Ensure focus changes are immediate for screen reader users */
+    .sft-panel {
+        transition: none;
+    }
+}
+
+/* Force visibility for screen reader testing */
+@media (forced-colors: active) {
+    .sft-panel {
+        border: 1px solid ButtonText;
+    }
+    
+    .sft-radio-group input[type="radio"]:checked + label {
+        border: 2px solid Highlight;
+        background: Highlight;
+        color: HighlightText;
     }
 }

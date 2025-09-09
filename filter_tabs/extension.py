@@ -420,11 +420,30 @@ def depart_summary_node(self: HTML5Translator, node: SummaryNode) -> None:
 
 
 # =============================================================================
+# Use ARIA to Improve Strong Element Behavior
+# =============================================================================
+
+def improve_inline_formatting(app: Sphinx, doctree: nodes.document, docname: str):
+    """Improve screen reader handling of inline formatting."""
+    if app.builder.name != 'html':
+        return
+        
+    # Find all strong/emphasis nodes and add ARIA attributes
+    for node in doctree.findall(nodes.strong):
+        # Add aria-label to make the content read as one unit
+        text_content = node.astext()
+        node['aria-label'] = text_content
+        
+    for node in doctree.findall(nodes.emphasis):
+        text_content = node.astext()
+        node['aria-label'] = text_content
+
+# =============================================================================
 # Static File Handling
 # =============================================================================
 
 def copy_static_files(app: Sphinx):
-    """Copy CSS and JS files to the build directory."""
+    """Copy CSS file to the build directory."""
     if app.builder.name != 'html':
         return
         
@@ -436,11 +455,7 @@ def copy_static_files(app: Sphinx):
     css_file = static_source_dir / "filter_tabs.css"
     if css_file.exists():
         shutil.copy(css_file, dest_dir)
-    
-    # Copy JS file if it exists
-    js_file = static_source_dir / "filter_tabs.js"
-    if js_file.exists():
-        shutil.copy(js_file, dest_dir)
+
 
 
 # =============================================================================
@@ -456,7 +471,6 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     
     # Add static files
     app.add_css_file('filter_tabs.css')
-    app.add_js_file('filter_tabs.js')
     
     # Register custom nodes (keep existing node registration code)
     app.add_node(ContainerNode, html=(visit_container_node, depart_container_node))
@@ -475,6 +489,7 @@ def setup(app: Sphinx) -> Dict[str, Any]:
     # Connect event handlers
     app.connect('builder-inited', copy_static_files)
     app.connect('doctree-resolved', setup_collapsible_admonitions)
+    app.connect('doctree-resolved', improve_inline_formatting)
     
     return {
         'version': __version__,
