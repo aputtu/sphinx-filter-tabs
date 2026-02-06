@@ -1,5 +1,6 @@
 #!/bin/bash
 # export-project.sh - Export complete project structure and contents
+# Excludes artifacts, builds, virtual environments, and binary files.
 
 # Generate timestamp for filename
 TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
@@ -7,7 +8,10 @@ OUTPUT_FILE="../sphinx-filtertabs-export_${TIMESTAMP}.txt"
 
 echo "🔄 Exporting project to: $OUTPUT_FILE"
 
-# Create the export file
+# Define exclusion pattern for 'tree'
+# Matches: .git, .tox, any venv/env variant, build artifacts, cache, IDE folders
+TREE_IGNORE='.git|.tox|venv*|.venv*|env*|dist|build|*.egg-info|_build|__pycache__|*.pyc|*.pdf|htmlcov|.coverage|.pytest_cache|.vscode|.idea'
+
 {
     echo "# Sphinx Filter Tabs - Complete Project Export"
     echo "# Generated: $(date '+%Y-%m-%d %H:%M:%S')"
@@ -19,8 +23,9 @@ echo "🔄 Exporting project to: $OUTPUT_FILE"
     echo "================================================================================"
     echo ""
     
-    # Project tree structure, now ignoring dist and .pytest_cache
-    tree -a -I '.git|.tox|venv|dist|.pytest_cache|*.egg-info|_build|__pycache__|*.pyc|*.pdf'
+    # -a: All files (hidden included)
+    # -I: Ignore pattern
+    tree -a -I "$TREE_IGNORE"
     
     echo ""
     echo ""
@@ -29,35 +34,45 @@ echo "🔄 Exporting project to: $OUTPUT_FILE"
     echo "================================================================================"
     echo ""
     
-    # Find and display file contents, now ignoring dist and .pytest_cache
-    find . -type f \
-        -not -path './.git/*' \
-        -not -path './.tox/*' \
-        -not -path './venv/*' \
-        -not -path './dist/*' \
-        -not -path './.pytest_cache/*' \
-        -not -path './*/__pycache__/*' \
-        -not -path './docs/_build/*' \
-        -not -path './docs/_downloads/*.pdf' \
-        -not -path './*.egg-info/*' \
+    # Find files, pruning ignored directories to prevent traversal
+    find . \
+        \( \
+            -name ".git" -o \
+            -name ".tox" -o \
+            -name "venv*" -o \
+            -name ".venv*" -o \
+            -name "env*" -o \
+            -name "dist" -o \
+            -name "build" -o \
+            -name "*.egg-info" -o \
+            -name "htmlcov" -o \
+            -name ".pytest_cache" -o \
+            -name "__pycache__" -o \
+            -name "_build" -o \
+            -name ".vscode" -o \
+            -name ".idea" \
+        \) -prune -o \
+        -type f \
         -not -name '*.pyc' \
         -not -name '*.pyo' \
+        -not -name '*.pdf' \
         -not -name '.DS_Store' \
         -not -name 'Thumbs.db' \
-        -exec sh -c '
-            echo "=== $1 ==="
-            if file "$1" | grep -q "text\|empty"; then
-                cat "$1"
+        -not -name '.coverage' \
+        -print0 | xargs -0 -I {} sh -c '
+            echo "=== {} ==="
+            if file "{}" | grep -q "text\|empty"; then
+                cat "{}"
             else
                 echo "[Binary file - content not displayed]"
             fi
             echo ""
-        ' _ {} \;
+        '
+    
     echo ""
     echo "================================================================================"
     echo "EXPORT COMPLETE"
     echo "================================================================================"
-    # ... rest of the script ...
 
 } > "$OUTPUT_FILE"
 

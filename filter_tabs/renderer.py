@@ -88,13 +88,12 @@ class FilterTabsRenderer:
     def __init__(self, directive: Directive, tab_data: List[TabData], general_content: List[nodes.Node], custom_legend: Optional[str] = None):
         self.directive = directive
         self.env: BuildEnvironment = directive.state.document.settings.env
-        self.app = self.env.app
         self.tab_data = tab_data
         self.general_content = general_content
         self.custom_legend = custom_legend
 
-        # 1. Load configuration first
-        self.config = FilterTabsConfig.from_sphinx_config(self.app.config)
+        # 1. Load configuration using env.config (Sphinx 9+ safe)
+        self.config = FilterTabsConfig.from_sphinx_config(self.env.config)
 
         # 2. Safely initialize the counter on the environment if it doesn't exist
         if not hasattr(self.env, 'filter_tabs_counter'):

@@ -7,6 +7,7 @@ Consolidated version containing directives, data models, nodes, and Sphinx integ
 from __future__ import annotations
 import copy
 import shutil
+import warnings
 from pathlib import Path
 from docutils import nodes
 from docutils.parsers.rst import Directive, directives
@@ -20,6 +21,12 @@ from . import __version__
 
 if TYPE_CHECKING:
     from sphinx.environment import BuildEnvironment
+
+# Define the warning for Sphinx 9 compatibility
+try:
+    from sphinx.deprecation import RemovedInSphinx11Warning
+except ImportError:
+    RemovedInSphinx11Warning = DeprecationWarning
 
 # =============================================================================
 # Custom Docutils Nodes
@@ -43,7 +50,6 @@ class SummaryNode(nodes.General, nodes.Element): pass
 class TabData:
     """
     Represents a single tab's data within a filter-tabs directive.
-    
     Attributes:
         name: Display name of the tab
         is_default: Whether this tab should be selected by default
@@ -99,7 +105,6 @@ class FilterTabsConfig:
 class IDGenerator:
     """
     Centralized ID generation for consistent element identification.
-    
     This ensures all IDs follow a consistent pattern and are unique
     within their filter-tabs group.
     """
@@ -151,7 +156,7 @@ class TabDirective(Directive):
         
         # Validate context
         if not hasattr(env, 'sft_context') or not env.sft_context:
-           raise self.error("`tab` can only be used inside a `filter-tabs` directive.")
+            raise self.error("`tab` can only be used inside a `filter-tabs` directive.")
         
         # Parse tab argument - moved from parsers.py
         try:
@@ -242,7 +247,7 @@ class FilterTabsDirective(Directive):
         # Validate tabs - moved from parsers.py
         if not tab_data_list:
             error_message = (
-                "No `.. tab::` directives found inside `.. filter-tabs::`. "
+                "No `.. tab::` directives found inside `.. filter-tabs::`.\n"
                 "You must include at least one tab."
             )
             if general_content:
@@ -264,8 +269,21 @@ class FilterTabsDirective(Directive):
         from .renderer import FilterTabsRenderer
         renderer = FilterTabsRenderer(self, tab_data_list, general_content, custom_legend=custom_legend)
         
+        # Safe builder check that suppresses Sphinx 9 warnings
+        builder_name = 'html'  # Default assumption
+        
+        try:
+            # We catch the specific warning about env.app being deprecated
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=RemovedInSphinx11Warning)
+                if hasattr(env, 'app') and env.app:
+                    builder_name = env.app.builder.name
+        except Exception:
+            # Fallback for very old Sphinx or edge cases
+            pass
+        
         # Render based on builder
-        if env.app.builder.name == 'html':
+        if builder_name == 'html':
             return renderer.render_html()
         else:
             return renderer.render_fallback()
@@ -274,7 +292,7 @@ class FilterTabsDirective(Directive):
         """Validate tab data list - moved from parsers.py"""
         if not tab_data_list and not skip_empty_check:
             raise ValueError(
-                "No tab directives found inside filter-tabs. "
+                "No tab directives found inside filter-tabs.\n"
                 "Add at least one .. tab:: directive."
             )
         names = []
@@ -382,7 +400,7 @@ def visit_radio_input_node(self: HTML5Translator, node: RadioInputNode) -> None:
     self.body.append(self.starttag(node, 'input', **attrs))
 
 def depart_radio_input_node(self: HTML5Translator, node: RadioInputNode) -> None:
-    pass  # Self-closing tag
+    pass   # Self-closing tag
 
 def visit_label_node(self: HTML5Translator, node: LabelNode) -> None:
     attrs = _get_html_attrs(node)
@@ -496,3 +514,4 @@ def setup(app: Sphinx) -> Dict[str, Any]:
         'parallel_read_safe': True,
         'parallel_write_safe': True,
     }
+    

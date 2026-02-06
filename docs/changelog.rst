@@ -1,6 +1,21 @@
 Changelog
 =========
 
+Version 1.3.0 (2026-02-06)
+--------------------------
+
+**Compatibility & Infrastructure**
+
+* **Added Official Support for Sphinx 9.0 and 9.1**: Updated dependency constraints and testing matrix to ensure full compatibility with the latest Sphinx releases.
+* **Added Python 3.13 Support**: Verified compatibility and updated package classifiers.
+* **Future-Proofing**: Resolves `RemovedInSphinx11Warning` by refactoring configuration access to use `env.config` and safely handling builder checks.
+
+**Development**
+
+* Optimized `tox` configuration for parallel testing.
+* Improved `export-project.sh` script to robustly exclude virtual environments and build artifacts.
+
+
 Version 1.2.6 (2025-09-09)
 ---------------------------
 

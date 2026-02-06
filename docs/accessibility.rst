@@ -1,5 +1,5 @@
 WAI-ARIA Implementation with Pure CSS Architecture
-================================================
+==================================================
 
 Here's how the codebase implements key WAI-ARIA specifications using
 entirely CSS and semantic HTML, with no JavaScript dependencies:
