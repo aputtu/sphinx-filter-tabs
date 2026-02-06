@@ -202,8 +202,8 @@ The project includes comprehensive tests covering:
 - Cross-browser compatibility
 
 Tests run automatically on:
-- Python 3.10, 3.12
-- Sphinx 7.0, 7.4, 8.0, 8.2
+- Python versions 3.10, 3.12
+- Sphinx versions 7.0, 7.4, 8.0, 8.2, 9.0, 9.1
 - Multiple operating systems via GitHub Actions
 
 ## Architecture
