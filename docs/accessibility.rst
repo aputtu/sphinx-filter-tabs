@@ -98,8 +98,7 @@ Technical Implementation Details
 ================================
 
 **CSS Selector Strategy**: Uses ``data-tab-index`` attributes with CSS
-``[data-tab-index="N"]:checked`` selectors to show/hide panels, avoiding
-fragile nth-child calculations.
+selectors to show/hide panels, avoiding fragile nth-child calculations.
 
 **Keyboard Navigation**: Leverages browser's native radiogroup keyboard
 handling, which already implements the correct ARIA patterns for grouped

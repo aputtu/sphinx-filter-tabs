@@ -142,6 +142,8 @@ This extension uses a **pure CSS architecture** with semantic HTML:
 - **Fieldset/legend** structure provides semantic grouping
 - **ARIA attributes** enhance screen reader support
 - **Native keyboard navigation** works through standard form controls
+- **Dynamic Tab Count**: No fixed limit — selectors are generated at build time, 
+  scaled to actual usage (groups above 15 emit a warning; above 20 emit an error).
 
 This approach ensures:
 - **Maximum compatibility** across all browsers and assistive technologies
