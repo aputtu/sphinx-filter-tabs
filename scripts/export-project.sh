@@ -46,6 +46,7 @@ TREE_IGNORE='.git|.tox|venv*|.venv*|env*|dist|build|*.egg-info|_build|__pycache_
             -name "build" -o \
             -name "*.egg-info" -o \
             -name "htmlcov" -o \
+            -name "image*" -o \
             -name ".pytest_cache" -o \
             -name "__pycache__" -o \
             -name "_build" -o \
