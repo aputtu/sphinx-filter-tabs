@@ -7,7 +7,6 @@ Consolidated version containing directives, data models, nodes, and Sphinx integ
 from __future__ import annotations
 import copy
 import shutil
-import warnings
 from pathlib import Path
 from docutils import nodes
 from docutils.parsers.rst import Directive, directives
@@ -22,11 +21,7 @@ from . import __version__
 if TYPE_CHECKING:
     from sphinx.environment import BuildEnvironment
 
-# Define the warning for Sphinx 9 compatibility
-try:
-    from sphinx.deprecation import RemovedInSphinx11Warning
-except ImportError:
-    RemovedInSphinx11Warning = DeprecationWarning
+__all__ = ['setup']
 
 # =============================================================================
 # Custom Docutils Nodes
@@ -94,11 +89,6 @@ class FilterTabsConfig:
                 app_config, 'filter_tabs_debug_mode', cls.debug_mode
             ),
         )
-    
-    def to_css_properties(self) -> str:
-        """Convert config to CSS custom properties string."""
-        # Generate CSS variables - the highlight color drives all other colors
-        return f"--sft-highlight-color: {self.highlight_color};"
 
 
 @dataclass
@@ -268,21 +258,11 @@ class FilterTabsDirective(Directive):
         # Import renderer here to avoid circular imports
         from .renderer import FilterTabsRenderer
         renderer = FilterTabsRenderer(self, tab_data_list, general_content, custom_legend=custom_legend)
-        
-        # Safe builder check that suppresses Sphinx 9 warnings
-        builder_name = 'html'  # Default assumption
-        
-        try:
-            # We catch the specific warning about env.app being deprecated
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=RemovedInSphinx11Warning)
-                if hasattr(env, 'app') and env.app:
-                    builder_name = env.app.builder.name
-        except Exception:
-            # Fallback for very old Sphinx or edge cases
-            pass
-        
-        # Render based on builder
+
+        # Builder name is stored in env by _store_builder_name() during builder-inited.
+        # This avoids the deprecated env.app access pattern.
+        builder_name = getattr(env, 'filter_tabs_builder_name', 'html')
+
         if builder_name == 'html':
             return renderer.render_html()
         else:
@@ -438,42 +418,134 @@ def depart_summary_node(self: HTML5Translator, node: SummaryNode) -> None:
 
 
 # =============================================================================
-# Use ARIA to Improve Strong Element Behavior
-# =============================================================================
-
-def improve_inline_formatting(app: Sphinx, doctree: nodes.document, docname: str):
-    """Improve screen reader handling of inline formatting."""
-    if app.builder.name != 'html':
-        return
-        
-    # Find all strong/emphasis nodes and add ARIA attributes
-    for node in doctree.findall(nodes.strong):
-        # Add aria-label to make the content read as one unit
-        text_content = node.astext()
-        node['aria-label'] = text_content
-        
-    for node in doctree.findall(nodes.emphasis):
-        text_content = node.astext()
-        node['aria-label'] = text_content
-
-# =============================================================================
 # Static File Handling
 # =============================================================================
 
-def copy_static_files(app: Sphinx):
-    """Copy CSS file to the build directory."""
-    if app.builder.name != 'html':
-        return
-        
-    static_source_dir = Path(__file__).parent / "static"
-    dest_dir = Path(app.outdir) / "_static"
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Only copy the consolidated CSS file
-    css_file = static_source_dir / "filter_tabs.css"
-    if css_file.exists():
-        shutil.copy(css_file, dest_dir)
+def _store_builder_name(app: Sphinx) -> None:
+    """Store the builder name in env during builder-inited for safe access from directives.
 
+    Directives cannot safely access app.builder directly in newer Sphinx versions,
+    so we cache it here during the event that is guaranteed to run before any reads.
+    """
+    app.env.filter_tabs_builder_name = app.builder.name
+
+
+def _register_static_assets(app: Sphinx) -> None:
+    """Register CSS filenames with Sphinx during builder-inited.
+
+    File registration must happen here so Sphinx includes the <link> tags in
+    HTML output. The actual file content is written later in _write_theme_css(),
+    after the full config is available.
+    """
+    if app.builder.format != 'html':
+        return
+
+    static_source = Path(__file__).parent / 'static'
+    static_dest = Path(app.outdir) / '_static'
+    static_dest.mkdir(parents=True, exist_ok=True)
+
+    css_file = static_source / 'filter_tabs.css'
+    if css_file.exists():
+        shutil.copy(css_file, static_dest)
+
+    app.add_css_file('filter_tabs.css')
+    # Register the theme file now; content is written in build-finished.
+    app.add_css_file('filter_tabs_theme.css')
+
+
+def _write_theme_css(app: Sphinx, exception: Exception | None) -> None:
+    """Write the generated theme CSS file after the build completes.
+
+    Using build-finished (rather than builder-inited) ensures we read the
+    definitive config values — including any set programmatically after app
+    creation, which is common in test environments.
+
+    The panel-visibility selector block is generated here rather than kept as
+    a static list in filter_tabs.css for two reasons:
+
+    1. Scalability: the block is sized to the actual maximum tab count used
+       in this build, so there is no arbitrary hard limit in the CSS file.
+
+    2. Nesting correctness: the child combinator (>) is used between
+       .sft-content and .sft-panel so that an outer group's :checked selector
+       cannot bleed into a nested group's panels.
+    """
+    if exception is not None:
+        return
+    if app.builder.format != 'html':
+        return
+
+    # --- Determine and validate the tab count ceiling ---
+
+    WARN_THRESHOLD = 15   # Unusual but technically supported; warn.
+    HARD_CAP = 20         # Beyond this, tabs are no longer usable UI.
+
+    max_tabs = getattr(app.env, 'filter_tabs_max_tab_count', 0)
+
+    if max_tabs > HARD_CAP:
+        logger.error(
+            f"filter-tabs: a tab group with {max_tabs} tabs was found. "
+            f"Tab groups are capped at {HARD_CAP} to prevent unusable output. "
+            f"Consider splitting content into separate pages, a toctree, or a table. "
+            f"Selectors will be generated for indices 0–{HARD_CAP - 1} only."
+        )
+        max_tabs = HARD_CAP
+    elif max_tabs > WARN_THRESHOLD:
+        logger.warning(
+            f"filter-tabs: a tab group with {max_tabs} tabs was found. "
+            f"Tab groups this large are hard to navigate; consider restructuring the content."
+        )
+
+    # --- Generate the selector block ---
+
+    # Each line selects a single panel inside its own .sft-content using the
+    # child combinator (>), which prevents the selector from matching panels
+    # inside nested filter-tabs groups.
+    def _selector(i: int) -> str:
+        return (
+            f'.sft-radio-group input[type="radio"][data-tab-index="{i}"]'
+            f':checked ~ .sft-content > .sft-panel[data-tab-index="{i}"]'
+        )
+
+    if max_tabs > 0:
+        selectors = ",\n".join(_selector(i) for i in range(max_tabs))
+        visibility_block = (
+            "/* Panel visibility — generated at build time, scoped with child\n"
+            " * combinator (>) to isolate nested tab groups. */\n"
+            f"{selectors} {{\n"
+            "    display: block;\n"
+            "}\n"
+        )
+    else:
+        visibility_block = "/* No filter-tabs groups found in this build. */\n"
+
+    # --- Write the file ---
+
+    color = app.config.filter_tabs_highlight_color
+    theme_css = (
+        "/* sphinx-filter-tabs: generated theme — do not edit by hand */\n"
+        f":root {{ --sft-highlight-color: {color}; }}\n"
+        "\n"
+        f"{visibility_block}"
+    )
+    static_dest = Path(app.outdir) / '_static'
+    static_dest.mkdir(parents=True, exist_ok=True)
+    theme_file = static_dest / 'filter_tabs_theme.css'
+    theme_file.write_text(theme_css, encoding='utf-8')
+
+
+
+# =============================================================================
+# LaTeX Visitor Helpers
+# =============================================================================
+
+def _latex_skip(self: Any, node: nodes.Element) -> None:
+    """Skip this node entirely in LaTeX output (raises SkipNode)."""
+    raise nodes.SkipNode
+
+def _latex_noop(self: Any, node: nodes.Element) -> None:
+    """No-op depart visitor, used alongside _latex_skip."""
+    pass
 
 
 # =============================================================================
@@ -481,37 +553,40 @@ def copy_static_files(app: Sphinx):
 # =============================================================================
 
 def setup(app: Sphinx) -> Dict[str, Any]:
-    """Setup the Sphinx extension with minimal configuration."""
-    
-    # ONLY essential configuration options (down from 9 to 2)
+    """Set up the sphinx-filter-tabs extension."""
+
+    # Configuration values
     app.add_config_value('filter_tabs_highlight_color', '#007bff', 'html', [str])
     app.add_config_value('filter_tabs_debug_mode', False, 'html', [bool])
-    
-    # Add static files
-    app.add_css_file('filter_tabs.css')
-    
-    # Register custom nodes (keep existing node registration code)
-    app.add_node(ContainerNode, html=(visit_container_node, depart_container_node))
-    app.add_node(FieldsetNode, html=(visit_fieldset_node, depart_fieldset_node))
-    app.add_node(LegendNode, html=(visit_legend_node, depart_legend_node))
-    app.add_node(RadioInputNode, html=(visit_radio_input_node, depart_radio_input_node))
-    app.add_node(LabelNode, html=(visit_label_node, depart_label_node))
-    app.add_node(PanelNode, html=(visit_panel_node, depart_panel_node))
-    app.add_node(DetailsNode, html=(visit_details_node, depart_details_node))
-    app.add_node(SummaryNode, html=(visit_summary_node, depart_summary_node))
-    
+
+    # Register custom nodes.
+    # latex=(_latex_skip, _latex_noop) is a defensive passthrough: the directive
+    # returns standard docutils nodes for non-HTML builders via render_fallback(),
+    # so these custom nodes never appear in LaTeX trees in normal use. The
+    # explicit registration prevents silent failures if they somehow do.
+    _latex = (_latex_skip, _latex_noop)
+    app.add_node(ContainerNode,  html=(visit_container_node,    depart_container_node),    latex=_latex)
+    app.add_node(FieldsetNode,   html=(visit_fieldset_node,     depart_fieldset_node),     latex=_latex)
+    app.add_node(LegendNode,     html=(visit_legend_node,       depart_legend_node),       latex=_latex)
+    app.add_node(RadioInputNode, html=(visit_radio_input_node,  depart_radio_input_node),  latex=_latex)
+    app.add_node(LabelNode,      html=(visit_label_node,        depart_label_node),        latex=_latex)
+    app.add_node(PanelNode,      html=(visit_panel_node,        depart_panel_node),        latex=_latex)
+    app.add_node(DetailsNode,    html=(visit_details_node,      depart_details_node),      latex=_latex)
+    app.add_node(SummaryNode,    html=(visit_summary_node,      depart_summary_node),      latex=_latex)
+
     # Register directives
     app.add_directive('filter-tabs', FilterTabsDirective)
     app.add_directive('tab', TabDirective)
-    
-    # Connect event handlers
-    app.connect('builder-inited', copy_static_files)
+
+    # Event handlers — order matters:
+    # _store_builder_name must run before any directive reads env.filter_tabs_builder_name.
+    app.connect('builder-inited', _store_builder_name)
+    app.connect('builder-inited', _register_static_assets)
     app.connect('doctree-resolved', setup_collapsible_admonitions)
-    app.connect('doctree-resolved', improve_inline_formatting)
-    
+    app.connect('build-finished', _write_theme_css)
+
     return {
         'version': __version__,
         'parallel_read_safe': True,
         'parallel_write_safe': True,
     }
-    

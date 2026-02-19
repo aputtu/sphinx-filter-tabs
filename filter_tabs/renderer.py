@@ -140,12 +140,11 @@ class FilterTabsRenderer:
         return output_nodes
 
     def _get_container_attributes(self) -> Dict[str, Any]:
-        """Get container attributes, including the style for custom properties."""
+        """Get container attributes."""
         return {
             'classes': [SFT_CONTAINER],
             'role': 'region',
             'aria-labelledby': self.id_gen.legend_id(),
-            'style': self.config.to_css_properties()
         }
 
     def _create_fieldset(self) -> FieldsetNode:
@@ -185,6 +184,14 @@ class FilterTabsRenderer:
 
     def _populate_radio_group(self, radio_group: ContainerNode) -> None:
         """Create and add all radio buttons and labels to the radio group container."""
+        n = len(self.tab_data)
+
+        # Track the highest tab count seen across the whole build so that
+        # _write_theme_css() can generate exactly the selectors needed —
+        # no more, no less.
+        current_max = getattr(self.env, 'filter_tabs_max_tab_count', 0)
+        self.env.filter_tabs_max_tab_count = max(current_max, n)
+
         default_index = next((i for i, tab in enumerate(self.tab_data) if tab.is_default), 0)
 
         for i, tab in enumerate(self.tab_data):
@@ -254,4 +261,3 @@ class FilterTabsRenderer:
         panel = PanelNode(**panel_attrs)
         panel.extend(copy.deepcopy(tab.content))
         return panel
-    

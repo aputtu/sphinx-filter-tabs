@@ -1,6 +1,45 @@
 Changelog
 =========
 
+Version 1.3.1 (2026-02-19)
+---------------------------
+
+**Bug fixes**
+
+* Removed ``improve_inline_formatting`` event handler, which incorrectly added
+  redundant ``aria-label`` attributes to every ``<strong>`` and ``<em>`` element
+  sitewide, causing screen readers to double-announce text.
+* Fixed the CSS panel-visibility selectors to use the child combinator (``>``)
+  between ``.sft-content`` and ``.sft-panel``. The previous descendant combinator
+  caused outer group ``checked`` selectors to bleed into nested groups, showing
+  inner panels regardless of their own radio state.
+
+**Improvements**
+
+* Removed the hard 10-tab limit. The panel-visibility selector block is now
+  generated at build time, sized exactly to the maximum tab count used in the
+  build. Groups above 15 tabs emit a warning; groups above 20 emit an error and
+  are capped.
+* Replaced per-container inline ``style`` attributes with a generated
+  ``filter_tabs_theme.css`` file, keeping ``--sft-highlight-color`` as a proper
+  ``:root`` CSS custom property rather than per-element inline style.
+* Moved ``app.add_css_file()`` inside the ``builder-inited`` event behind a
+  format check, so CSS is never registered for LaTeX and other non-HTML builders.
+* Replaced deprecated ``env.app`` access in directives with a builder name
+  cached in ``env`` during ``builder-inited``, eliminating the
+  ``RemovedInSphinx11Warning`` suppression workaround.
+* Added explicit LaTeX skip-visitors for all custom nodes, preventing silent
+  failures if they appear outside expected code paths.
+* Fixed hover and focus tints to use ``color-mix()`` against
+  ``--sft-highlight-color`` rather than hardcoded ``rgba(0, 123, 255, …)``
+  values that did not follow user colour customisation.
+* Added ``__all__ = ['setup']`` to ``extension.py`` to declare the public API.
+
+**Documentation**
+
+* Added a 12-tab *Large Tab Groups* example to the usage page demonstrating
+  realistic many-language SDK installation instructions.
+
 Version 1.3.0 (2026-02-06)
 --------------------------
 

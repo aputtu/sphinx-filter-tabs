@@ -278,8 +278,7 @@ Test Document
 
 @pytest.mark.sphinx('html')
 def test_configuration_theming(app: SphinxTestApp):
-    """Test that theming configuration options work."""
-    # Use the correct simplified config option name
+    """Test that the highlight colour config is written to the generated theme CSS file."""
     app.config.filter_tabs_highlight_color = '#ff0000'
 
     content = """
@@ -294,12 +293,19 @@ Test Document
     app.srcdir.joinpath('index.rst').write_text(content)
     app.build()
 
+    # The container element should no longer carry an inline style — the
+    # colour is now injected globally via a generated filter_tabs_theme.css.
     soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
     container = soup.select_one('.sft-container')
+    assert not container.get('style'), "Container should have no inline style attribute"
 
-    style = container.get('style', '')
-    # Test that the highlight color CSS variable is set correctly
-    assert '--sft-highlight-color: #ff0000' in style, f"CSS custom property should be set. Got: {style}"
+    # Verify the generated theme CSS file exists and contains the configured value.
+    theme_css_path = app.outdir / '_static' / 'filter_tabs_theme.css'
+    assert theme_css_path.exists(), "filter_tabs_theme.css should be generated in _static/"
+    theme_content = theme_css_path.read_text(encoding='utf-8')
+    assert '--sft-highlight-color: #ff0000' in theme_content, (
+        f"Generated theme CSS should contain the configured colour. Got:\n{theme_content}"
+    )
 
 
 @pytest.mark.sphinx('html')
@@ -426,3 +432,91 @@ Test Document
     legend = soup.select_one('.sft-legend')
     assert legend, "Legend should exist"
     assert legend.get_text().strip() == "My Custom Test Legend"
+
+
+@pytest.mark.sphinx('html')
+def test_more_than_ten_tabs(app: SphinxTestApp):
+    """Test that tab groups with more than 10 tabs work correctly.
+
+    Previously the CSS selector block was static and capped at 10. Now it is
+    generated dynamically, so all tabs must appear in the HTML and the
+    generated theme CSS must contain a selector for every index.
+    """
+    tabs = "\n".join(
+        f"    .. tab:: Tab {i}{' (default)' if i == 0 else ''}\n\n        Content {i}.\n"
+        for i in range(12)
+    )
+    content = f"""
+Test Document
+=============
+
+.. filter-tabs::
+
+{tabs}
+"""
+    app.srcdir.joinpath('index.rst').write_text(content)
+    app.build()
+
+    soup = BeautifulSoup((app.outdir / 'index.html').read_text(), 'html.parser')
+
+    # All 12 panels must be present in the DOM.
+    panels = soup.select('.sft-panel[data-tab-index]')
+    tab_indices = {p.get('data-tab-index') for p in panels if p.get('data-filter') != 'General'}
+    assert len(tab_indices) == 12, (
+        f"Expected 12 tab panels in the DOM, found {len(tab_indices)}: {sorted(tab_indices)}"
+    )
+
+    # The generated theme CSS must contain a selector for every index 0–11.
+    theme_css = (app.outdir / '_static' / 'filter_tabs_theme.css').read_text()
+    for i in range(12):
+        assert f'data-tab-index="{i}"]' in theme_css, (
+            f"Expected selector for data-tab-index={i} in generated theme CSS"
+        )
+
+
+@pytest.mark.sphinx('html')
+def test_nested_tab_selector_isolation(app: SphinxTestApp):
+    """Test that the generated CSS uses the child combinator to isolate nested groups.
+
+    The selector must use '> .sft-panel' (child combinator) not ' .sft-panel'
+    (descendant combinator). Without this, selecting tab index N in an outer
+    group would also force-show panel index N inside any nested group,
+    overriding the inner group's own radio state.
+    """
+    content = """
+Test Document
+=============
+
+.. filter-tabs::
+
+    .. tab:: Outer A (default)
+
+        .. filter-tabs::
+
+            .. tab:: Inner X (default)
+
+                Inner X content.
+
+            .. tab:: Inner Y
+
+                Inner Y content.
+
+    .. tab:: Outer B
+
+        Outer B content.
+"""
+    app.srcdir.joinpath('index.rst').write_text(content)
+    app.build()
+
+    theme_css = (app.outdir / '_static' / 'filter_tabs_theme.css').read_text()
+
+    # Every panel selector must use the child combinator.
+    assert '~ .sft-content > .sft-panel' in theme_css, (
+        "Generated selectors must use child combinator (>) between "
+        ".sft-content and .sft-panel to prevent outer group selectors "
+        "from bleeding into nested groups."
+    )
+    # Confirm the descendant form is absent.
+    assert '~ .sft-content .sft-panel' not in theme_css, (
+        "Descendant combinator ( .sft-panel) found — this breaks nested tab isolation."
+    )

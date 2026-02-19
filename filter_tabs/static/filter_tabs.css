@@ -73,14 +73,14 @@
 .sft-radio-group input[type="radio"]:focus + label {
     outline: 2px solid var(--sft-highlight-color, #007bff);
     outline-offset: 2px;
-    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.25);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--sft-highlight-color, #007bff) 25%, transparent);
     z-index: 1;
 }
 
 /* Hover effects */
 .sft-radio-group label:hover {
     color: #495057;
-    background: rgba(0, 123, 255, 0.05);
+    background: color-mix(in srgb, var(--sft-highlight-color, #007bff) 8%, transparent);
 }
 
 /* Content area */
@@ -100,7 +100,7 @@
     outline: 3px solid var(--sft-highlight-color, #007bff);
     outline-offset: 2px;
     border-radius: 4px;
-    background: rgba(0, 123, 255, 0.05);
+    background: color-mix(in srgb, var(--sft-highlight-color, #007bff) 5%, transparent);
     /* Ensure smooth transition */
     transition: background-color 0.2s ease;
 }
@@ -138,19 +138,9 @@ strong, b, em, i {
     border-bottom: 1px solid #eee;
 }
 
-/* Panel visibility using data attributes */
-.sft-radio-group input[type="radio"][data-tab-index="0"]:checked ~ .sft-content .sft-panel[data-tab-index="0"],
-.sft-radio-group input[type="radio"][data-tab-index="1"]:checked ~ .sft-content .sft-panel[data-tab-index="1"],
-.sft-radio-group input[type="radio"][data-tab-index="2"]:checked ~ .sft-content .sft-panel[data-tab-index="2"],
-.sft-radio-group input[type="radio"][data-tab-index="3"]:checked ~ .sft-content .sft-panel[data-tab-index="3"],
-.sft-radio-group input[type="radio"][data-tab-index="4"]:checked ~ .sft-content .sft-panel[data-tab-index="4"],
-.sft-radio-group input[type="radio"][data-tab-index="5"]:checked ~ .sft-content .sft-panel[data-tab-index="5"],
-.sft-radio-group input[type="radio"][data-tab-index="6"]:checked ~ .sft-content .sft-panel[data-tab-index="6"],
-.sft-radio-group input[type="radio"][data-tab-index="7"]:checked ~ .sft-content .sft-panel[data-tab-index="7"],
-.sft-radio-group input[type="radio"][data-tab-index="8"]:checked ~ .sft-content .sft-panel[data-tab-index="8"],
-.sft-radio-group input[type="radio"][data-tab-index="9"]:checked ~ .sft-content .sft-panel[data-tab-index="9"] {
-    display: block;
-}
+/* Panel visibility selectors are generated dynamically into filter_tabs_theme.css
+ * by the extension at build time, scaled to the actual number of tabs used and
+ * using the child combinator (>) to correctly isolate nested tab groups. */
 
 /* ENHANCED: Accessibility improvements for content within panels */
 

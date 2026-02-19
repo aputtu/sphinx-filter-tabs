@@ -389,3 +389,202 @@ Simply indent the inner tab set within a ``tab`` directive of the outer set.
 
                   # Or using pip
                   pip install --user sphinx-filter-tabs
+
+.. only:: latex
+
+   .. raw:: latex
+
+      \newpage
+
+Large Tab Groups
+----------------
+
+There is no fixed limit on the number of tabs in a group. The panel-visibility
+CSS is generated at build time, scaled exactly to the tabs present in each
+build. The following example shows 12 tabs — a realistic count for a library
+that ships official clients for many languages.
+
+.. note::
+
+   Tab groups above 15 will trigger a build warning encouraging you to
+   consider restructuring. Groups above 20 are capped and produce a build
+   error. For truly large sets of alternatives, a :rst:dir:`toctree` or a
+   comparison table is usually a better fit.
+
+.. filter-tabs::
+   :legend: Install the client library for your language
+
+   .. tab:: Python (default)
+
+      .. code-block:: bash
+
+         pip install acme-client
+
+   .. tab:: JavaScript
+
+      .. code-block:: bash
+
+         npm install acme-client
+
+   .. tab:: TypeScript
+
+      .. code-block:: bash
+
+         npm install acme-client
+         # Type declarations are bundled — no @types package needed.
+
+   .. tab:: Go
+
+      .. code-block:: bash
+
+         go get github.com/acme/acme-client-go
+
+   .. tab:: Rust
+
+      .. code-block:: toml
+
+         # Cargo.toml
+         [dependencies]
+         acme-client = "1.0"
+
+   .. tab:: Java
+
+      .. code-block:: xml
+
+         <!-- pom.xml -->
+         <dependency>
+           <groupId>com.acme</groupId>
+           <artifactId>acme-client</artifactId>
+           <version>1.0.0</version>
+         </dependency>
+
+   .. tab:: Kotlin
+
+      .. code-block:: kotlin
+
+         // build.gradle.kts
+         implementation("com.acme:acme-client:1.0.0")
+
+   .. tab:: C#
+
+      .. code-block:: bash
+
+         dotnet add package Acme.Client
+
+   .. tab:: Ruby
+
+      .. code-block:: bash
+
+         gem install acme-client
+
+   .. tab:: PHP
+
+      .. code-block:: bash
+
+         composer require acme/acme-client
+
+   .. tab:: Swift
+
+      .. code-block:: swift
+
+         // Package.swift
+         .package(url: "https://github.com/acme/acme-client-swift", from: "1.0.0")
+
+   .. tab:: Elixir
+
+      .. code-block:: elixir
+
+         # mix.exs
+         {:acme_client, "~> 1.0"}
+
+.. only:: latex
+
+   .. raw:: latex
+
+      \newpage
+
+   Source Code for Large Tab Groups
+   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   .. code-block:: rst
+      :class: copyable
+
+      .. filter-tabs::
+         :legend: Install the client library for your language
+
+         .. tab:: Python (default)
+
+            .. code-block:: bash
+
+               pip install acme-client
+
+         .. tab:: JavaScript
+
+            .. code-block:: bash
+
+               npm install acme-client
+
+         .. tab:: TypeScript
+
+            .. code-block:: bash
+
+               npm install acme-client
+
+         .. tab:: Go
+
+            .. code-block:: bash
+
+               go get github.com/acme/acme-client-go
+
+         .. tab:: Rust
+
+            .. code-block:: toml
+
+               [dependencies]
+               acme-client = "1.0"
+
+         .. tab:: Java
+
+            .. code-block:: xml
+
+               <dependency>
+                 <groupId>com.acme</groupId>
+                 <artifactId>acme-client</artifactId>
+                 <version>1.0.0</version>
+               </dependency>
+
+         .. tab:: Kotlin
+
+            .. code-block:: kotlin
+
+               implementation("com.acme:acme-client:1.0.0")
+
+         .. tab:: C#
+
+            .. code-block:: bash
+
+               dotnet add package Acme.Client
+
+         .. tab:: Ruby
+
+            .. code-block:: bash
+
+               gem install acme-client
+
+         .. tab:: PHP
+
+            .. code-block:: bash
+
+               composer require acme/acme-client
+
+         .. tab:: Swift
+
+            .. code-block:: swift
+
+               .package(url: "https://github.com/acme/acme-client-swift", from: "1.0.0")
+
+         .. tab:: Elixir
+
+            .. code-block:: elixir
+
+               {:acme_client, "~> 1.0"}
