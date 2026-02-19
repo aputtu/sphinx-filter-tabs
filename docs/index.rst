@@ -33,7 +33,7 @@ This Sphinx extension provides a robust, accessible, and JavaScript-free way to 
 requiring no JavaScript for core functionality. This ensures maximum compatibility,
 performance, and reliability across all environments.
 * **Accessible:** Full WAI-ARIA compliance
-* **Keyboard Navigation:** Arrow keys, Home/End, Enter/Space + Screen reader compatibility
+* **Keyboard Navigation:** Native keyboard navigation via standard form controls (arrow keys, Tab, Space).
 * **Customizable:** Easily theme color directly from your ``conf.py``.
 * **Graceful Fallback:** Renders as simple admonitions in non-HTML outputs like PDF/LaTeX.
 * **Select default tab:** Choose which tab to show by default.
