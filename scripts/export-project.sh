@@ -10,30 +10,30 @@ echo "🔄 Exporting project to: $OUTPUT_FILE"
 
 # Define exclusion pattern for 'tree'
 # Matches: .git, .tox, any venv/env variant, build artifacts, cache, IDE folders
-TREE_IGNORE='.git|.tox|venv*|.venv*|env*|dist|build|*.egg-info|_build|__pycache__|*.pyc|*.pdf|htmlcov|.coverage|.pytest_cache|.vscode|.idea'
+TREE_IGNORE='.git|.tox|venv*|.venv*|env*|dist|build|*.egg-info|_build|__pycache__|*.pyc|*.pdf|htmlcov|.coverage|.pytest_cache|.vscode|.idea|.claude|.mypy_cache|.ruff_cache|test-root'
 
 {
     echo "# Sphinx Filter Tabs - Complete Project Export"
     echo "# Generated: $(date '+%Y-%m-%d %H:%M:%S')"
     echo "# Working Directory: $(pwd)"
     echo ""
-    
+
     echo "================================================================================"
     echo "PROJECT STRUCTURE"
     echo "================================================================================"
     echo ""
-    
+
     # -a: All files (hidden included)
     # -I: Ignore pattern
     tree -a -I "$TREE_IGNORE"
-    
+
     echo ""
     echo ""
     echo "================================================================================"
     echo "FILE CONTENTS"
     echo "================================================================================"
     echo ""
-    
+
     # Find files, pruning ignored directories to prevent traversal
     find . \
         \( \
@@ -51,7 +51,11 @@ TREE_IGNORE='.git|.tox|venv*|.venv*|env*|dist|build|*.egg-info|_build|__pycache_
             -name "__pycache__" -o \
             -name "_build" -o \
             -name ".vscode" -o \
-            -name ".idea" \
+            -name ".idea" -o \
+            -name ".claude" -o \
+            -name ".mypy_cache" -o \
+            -name ".ruff_cache" -o \
+            -name "test-root" \
         \) -prune -o \
         -type f \
         -not -name '*.pyc' \
@@ -69,7 +73,7 @@ TREE_IGNORE='.git|.tox|venv*|.venv*|env*|dist|build|*.egg-info|_build|__pycache_
             fi
             echo ""
         '
-    
+
     echo ""
     echo "================================================================================"
     echo "EXPORT COMPLETE"

@@ -170,6 +170,11 @@ cd sphinx-filter-tabs
 
 This creates a virtual environment and builds the documentation.
 
+> **Note:** Always activate the virtual environment before running any development commands, otherwise your shell may pick up a different Python installation (e.g. a system or conda Python) and commands like `pytest` will fail:
+> ```bash
+> source venv/bin/activate
+> ```
+
 ### Development Commands
 
 ```bash
@@ -198,23 +203,31 @@ The project includes comprehensive tests covering:
 - Basic tab functionality and content visibility
 - Accessibility features and ARIA compliance
 - Nested tabs and complex layouts
-- Multiple output formats (HTML, LaTeX)
-- Cross-browser compatibility
+- Multiple output formats (HTML, LaTeX, plain text, man, texinfo)
+- Edge cases: duplicate names, empty tabs, multiple defaults, large tab groups
 
 Tests run automatically on:
-- Python versions 3.10, 3.12
+- Python versions 3.10, 3.11, 3.12, 3.13, 3.14
 - Sphinx versions 7.0, 7.4, 8.0, 8.2, 9.0, 9.1
 - Multiple operating systems via GitHub Actions
 
+```bash
+# Run the full test suite
+tox
+
+# Run linting (ruff) and type checking (mypy)
+tox -e lint
+tox -e mypy
+```
+
 ## Architecture
 
-The extension consists of three main components:
+The extension consists of two main components:
 
-- **`extension.py`** - Sphinx integration, directives, and node definitions
-- **`renderer.py`** - HTML generation and output formatting  
+- **`extension.py`** - Sphinx integration, directives, node definitions, and all rendering logic
 - **`static/filter_tabs.css`** - Pure CSS styling and functionality
 
-This clean separation makes the code easy to understand, test, and maintain.
+All HTML and fallback rendering lives directly in `extension.py` alongside the directive and node definitions, keeping the codebase compact and easy to follow.
 
 ## Contributing
 

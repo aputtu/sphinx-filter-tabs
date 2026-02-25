@@ -1,6 +1,21 @@
 #!/bin/bash
 # dev.sh - Enhanced development commands with PDF support
 
+# Resolve project root and venv binaries regardless of where the script is called from
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+VENV_BIN="$PROJECT_ROOT/venv/bin"
+
+if [ ! -f "$VENV_BIN/python" ]; then
+    echo "❌ Virtual environment not found. Run 'make setup' first."
+    exit 1
+fi
+
+PIP="$VENV_BIN/pip"
+PYTEST="$VENV_BIN/pytest"
+SPHINX_BUILD="$VENV_BIN/sphinx-build"
+WATCHMEDO="$VENV_BIN/watchmedo"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -28,7 +43,7 @@ print_warning() {
 # Install the package in development mode
 install_package() {
     print_status "Installing package in development mode..."
-    pip install -e . || {
+    $PIP install -e . || {
         print_error "Failed to install package"
         exit 1
     }
@@ -38,7 +53,7 @@ install_package() {
 # Run tests
 run_tests() {
     print_status "Running tests..."
-    pytest || {
+    $PYTEST || {
         print_error "Tests failed"
         exit 1
     }
@@ -48,7 +63,7 @@ run_tests() {
 # Build HTML documentation
 build_html() {
     print_status "Building HTML documentation..."
-    sphinx-build -b html docs docs/_build/html || {
+    $SPHINX_BUILD -b html docs docs/_build/html || {
         print_error "HTML build failed"
         exit 1
     }
@@ -62,7 +77,7 @@ build_pdf() {
     
     # Step 1: Build LaTeX source
     print_status "Building LaTeX source files..."
-    sphinx-build -b latex docs docs/_build/latex || {
+    $SPHINX_BUILD -b latex docs docs/_build/latex || {
         print_error "LaTeX build failed"
         exit 1
     }
@@ -101,16 +116,16 @@ watch_changes() {
     print_status "Watching for changes... (Press Ctrl+C to stop)"
     
     # Check if watchdog is installed
-    python -c "import watchdog" 2>/dev/null || {
+    $VENV_BIN/python -c "import watchdog" 2>/dev/null || {
         print_warning "watchdog not installed. Installing..."
-        pip install watchdog
+        $PIP install watchdog
     }
-    
+
     # Watch for Python and RST file changes
-    watchmedo shell-command \
+    $WATCHMEDO shell-command \
         --patterns="*.py;*.rst;*.css;*.js" \
         --recursive \
-        --command="echo 'Files changed, rebuilding...' && pip install -e . && sphinx-build -b html docs docs/_build/html" \
+        --command="echo 'Files changed, rebuilding...' && $PIP install -e . && $SPHINX_BUILD -b html docs docs/_build/html" \
         . &
     
     # Keep the script running

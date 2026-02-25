@@ -1,6 +1,45 @@
 Changelog
 =========
 
+Version 1.4.0 (2026-02-25)
+---------------------------
+
+**Code quality & tooling**
+
+* Deleted dead ``renderer.py`` module. ``FilterTabsRenderer`` was never
+  instantiated and imported a non-existent ``TabData`` class. All rendering
+  logic lives in ``extension.py``.
+* Modernised type annotations throughout ``extension.py``: replaced
+  ``typing.List``/``Dict``/``Optional`` with built-in generics (PEP 585)
+  and ``X | None`` (PEP 604); annotated the previously bare ``app_config``
+  parameter with ``sphinx.config.Config``; added missing ``-> None`` return
+  annotation on ``setup_collapsible_admonitions``; moved ``import re`` to
+  module level; fixed ``raise ... from e`` (B904) in ``TabDirective.run``.
+* Added ``mypy`` static type checking. Configuration lives in
+  ``[tool.mypy]`` in ``pyproject.toml`` with targeted overrides for
+  Sphinx's incomplete stubs. A ``mypy`` tox environment and CI step are
+  included.
+* Added ``ruff`` for linting and formatting. Configuration lives in
+  ``[tool.ruff]`` in ``pyproject.toml``. A ``lint`` tox environment runs
+  ``ruff check`` and ``ruff format --check``. A ``.pre-commit-config.yaml``
+  is provided for local use. The ``lint`` CI job gates the test matrix.
+* Expanded test suite from 16 to 31 tests, covering: ``_parse_tab_argument``
+  edge cases, ``_validate_slots`` warnings (duplicate names, empty content,
+  multiple defaults), ``tab``-outside-context error, all three
+  ``_infer_content_type`` paths, collapsible admonitions (collapsed,
+  expanded, no-title, non-HTML builder), and ``_write_theme_css`` warn/cap
+  thresholds.
+* Replaced ``black`` with ``ruff`` + ``mypy`` + ``types-docutils`` in
+  ``requirements/dev.txt``; pinned docs Sphinx to ``>=9.1`` in
+  ``requirements/docs.txt``; consolidated CI dependency installation to
+  use requirements files.
+* Fixed ``docs/conf.py``: use ``Path``-based ``sys.path`` manipulation,
+  read ``release`` from ``importlib.metadata``, add ``intersphinx``
+  mappings for Python and Sphinx, set ``filter_tabs_debug_mode = False``
+  for production docs.
+* Added ``NodeVisitorFunc`` type alias; applied to ``_visit_skip_node``,
+  ``_depart_noop``, and the ``VisitorPair`` tuple in ``setup()``.
+
 Version 1.3.1 (2026-02-19)
 ---------------------------
 
@@ -118,9 +157,8 @@ Version 1.2.0 (2025-08-31)
 First Production/Stable release.
 
 * No-breaking refactoring for easier maintainability
-* Consolidated six Python files into three, and reduced lines of code
-* extension.py: All Sphinx integration concerns in one place
-* renderer.py: All output generation logic consolidated
+* Consolidated six Python files into two, and reduced lines of code
+* extension.py: All Sphinx integration and output generation in one place
 * static/: UI functionality unchanged
 
 

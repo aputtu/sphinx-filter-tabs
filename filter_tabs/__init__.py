@@ -1,5 +1,6 @@
 """A robust Sphinx extension for creating accessible, JS-free filterable content tabs."""
-from importlib.metadata import version, PackageNotFoundError
+
+from importlib.metadata import PackageNotFoundError, version
 
 try:
     # Read the version from the installed package's metadata

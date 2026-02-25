@@ -1,18 +1,18 @@
 #!/bin/bash
 set -e
 
-# --- Check for Python 3.10 and install if missing ---
-echo "🐍 Checking for Python 3.10..."
-if ! command -v python3.10 &> /dev/null
+# --- Check for Python 3.12 and install if missing ---
+echo "🐍 Checking for Python 3.12..."
+if ! command -v python3.12 &> /dev/null
 then
-    echo "Python 3.10 not found. Installing via deadsnakes PPA..."
+    echo "Python 3.12 not found. Installing via deadsnakes PPA..."
     echo "You may be prompted for your password to run 'sudo'."
     sudo add-apt-repository ppa:deadsnakes/ppa -y
     sudo apt-get update
-    sudo apt-get install python3.10 python3.10-venv -y
-    echo "✅ Python 3.10 installed."
+    sudo apt-get install python3.12 python3.12-venv -y
+    echo "✅ Python 3.12 installed."
 else
-    echo "✅ Python 3.10 is already installed."
+    echo "✅ Python 3.12 is already installed."
 fi
 echo ""
 
@@ -35,7 +35,7 @@ echo ""
 echo "Setting up sphinx-filter-tabs development environment..."
 
 # Create and activate a virtual environment
-python3 -m venv venv
+python3.12 -m venv venv
 source venv/bin/activate
 
 # Install dependencies
@@ -83,9 +83,11 @@ echo ""
 echo "✅ Build complete!"
 echo ""
 echo "📋 Available commands:"
-echo "   source venv/bin/activate     # Activate virtual environment"
-echo "   ./scripts/dev.sh test        # Run tests"
-echo "   ./scripts/dev.sh html        # Build HTML docs"
-echo "   ./scripts/dev.sh all         # Run tests + build docs"
-echo "   ./scripts/export-project.sh  # Export complete project to txt for LLMs to use"
+echo "   make test       # Run tests"
+echo "   make html       # Build HTML docs"
+echo "   make pdf        # Build PDF docs"
+echo "   make all        # Run tests + build all docs"
+echo "   make clean      # Remove build artifacts"
+echo "   make export     # Export project to txt for LLMs to use"
+echo "   make            # Show all available targets"
 echo ""

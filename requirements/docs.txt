@@ -1,2 +1,2 @@
--r base.txt
-sphinx-rtd-theme
+Sphinx>=9.1,<10.0
+sphinx-rtd-theme>=2.0.0
