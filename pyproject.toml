@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 keywords = ["sphinx", "extension", "tabs", "filter", "documentation", "css-only", "accessibility", "keyboard-navigation"]
 name = "sphinx-filter-tabs"
-version = "1.4.0"
+version = "1.4.1"
 description = "A Sphinx extension for accessible, CSS-first filterable content tabs."
 readme = { file = "README.md", content-type = "text/markdown" }
 license = { text = "GNU General Public License v3.0" }
@@ -34,7 +34,7 @@ Repository = "https://github.com/aputtu/sphinx-filter-tabs.git"
 Issues = "https://github.com/aputtu/sphinx-filter-tabs/issues"
 
 [project.entry-points."sphinx.extensions"]
-filter_tabs = "filter_tabs.extension:setup"
+filter_tabs = "filter_tabs:setup"
 
 [tool.ruff]
 line-length = 100
@@ -74,7 +74,7 @@ follow_imports = "skip"
 [[tool.mypy.overrides]]
 # Sphinx's add_node() **kwargs stubs expect bool; actual API accepts visitor tuples.
 # This is a known stub inaccuracy upstream.
-module = "filter_tabs.extension"
+module = "filter_tabs"
 disable_error_code = ["arg-type"]
 
 [tool.setuptools.packages.find]

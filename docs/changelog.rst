@@ -1,6 +1,30 @@
 Changelog
 =========
 
+Version 1.4.1 (2026-02-28)
+---------------------------
+
+**Architecture & Refactoring**
+
+* **Modularized codebase**: Split the formerly monolithic ``extension.py`` into
+  a clean package structure. Core logic is now organized into dedicated
+  modules: ``nodes.py``, ``directives.py``, ``render_html.py``,
+  ``transforms.py``, and others. This significantly improves maintainability
+  and makes the code easier to navigate.
+* **Refined entry point**: Updated ``filter_tabs/__init__.py`` to serve as a
+  clean package interface, exporting only necessary Sphinx setup functions.
+
+**Developer Experience & Tooling**
+
+* **Improved IDE integration**: Added a ``.pyre_configuration`` file to help
+  static analysis tools correctly resolve imports within virtual environments,
+  eliminating common "missing import" warnings.
+* **Full style pass**: Re-formatted the entire codebase and organized import
+  blocks using ``ruff`` to ensure consistent style across all new modules.
+* **Workspace cleanup**: Updated ``.gitignore`` to properly handle
+  ``pdf_build.log`` and ``test_out.txt``, ensuring temporary build artifacts
+  stay out of the repository.
+
 Version 1.4.0 (2026-02-25)
 ---------------------------
 

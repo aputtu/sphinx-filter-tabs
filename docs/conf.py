@@ -17,7 +17,7 @@ except PackageNotFoundError:
 
 # -- General configuration ---------------------------------------------------
 extensions = [
-    "filter_tabs.extension",
+    "filter_tabs",
     "sphinx_rtd_theme",
     "sphinx.ext.intersphinx",
 ]

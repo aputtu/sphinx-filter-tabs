@@ -45,6 +45,8 @@ ENV*/
 htmlcov/
 .pytest_cache/
 .tox/
+*.log
+test_out.txt
 
 # OS
 .DS_Store

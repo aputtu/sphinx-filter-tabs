@@ -35,8 +35,7 @@ Add to your `conf.py`:
 
 ```python
 extensions = [
-    # ... your other extensions ...
-    'filter_tabs.extension',
+    'filter_tabs',
 ]
 ```
 
@@ -222,12 +221,12 @@ tox -e mypy
 
 ## Architecture
 
-The extension consists of two main components:
+The extension is organized as a modular Python package:
 
-- **`extension.py`** - Sphinx integration, directives, node definitions, and all rendering logic
-- **`static/filter_tabs.css`** - Pure CSS styling and functionality
+- **`filter_tabs/`** - Core logic split into focused modules (`nodes.py`, `directives.py`, `render_html.py`, etc.)
+- **`filter_tabs/static/`** - Pure CSS styling and functionality
 
-All HTML and fallback rendering lives directly in `extension.py` alongside the directive and node definitions, keeping the codebase compact and easy to follow.
+The logic is distributed across dedicated modules for nodes, directives, transforms, and builders, ensuring a clean and maintainable codebase.
 
 ## Contributing
 

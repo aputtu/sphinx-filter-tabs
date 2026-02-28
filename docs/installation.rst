@@ -15,14 +15,14 @@ Enabling the Extension
 ----------------------
 
 After installation, you must enable the extension in your Sphinx project's 
-``conf.py`` file. Add ``'filter_tabs.extension'`` to your ``extensions`` list:
+``conf.py`` file. Add ``'filter_tabs'`` to your ``extensions`` list:
 
 .. code-block:: python
 
    # conf.py
    extensions = [
        # ... your other extensions ...
-       'filter_tabs.extension',
+       'filter_tabs',
    ]
 
 Optional Configuration

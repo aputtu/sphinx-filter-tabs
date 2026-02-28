@@ -4,7 +4,7 @@
 
 # Tell Sphinx to load your extension
 extensions = [
-    "filter_tabs.extension",
+    "filter_tabs",
 ]
 
 # A minimal project configuration

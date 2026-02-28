@@ -790,6 +790,36 @@ Test Document
 
 
 @pytest.mark.sphinx("html")
+def test_substring_matching_order(app: SphinxTestApp):
+    """Exact match should take precedence over substring match.
+
+    'conda-forge' will NOT match 'conda' exact match (pass 1).
+    But if 'conda' exact match happens first, 'conda-forge' shouldn't magically match.
+    The real issue was `"source"` exact vs `"environment" (open source)` substring.
+    Let's test 'conda-forge' which matches 'package manager' substring.
+    """
+    content = """
+Test Document
+=============
+
+.. filter-tabs::
+
+    .. tab:: conda-forge
+
+        conda-forge content.
+"""
+    app.srcdir.joinpath("index.rst").write_text(content)
+    app.build()
+
+    soup = BeautifulSoup((app.outdir / "index.html").read_text(), "html.parser")
+    legend_text = soup.select_one(".sft-legend").get_text()
+
+    # "conda-forge" is not an exact match for "conda", but matches as a substring.
+    # Therefore, it will fall through Pass 1 and hit Pass 2 for "package manager"
+    assert "package manager" in legend_text
+
+
+@pytest.mark.sphinx("html")
 def test_legend_falls_back_to_option(app: SphinxTestApp):
     """Unrecognised tab names fall back to 'option' in the legend."""
     content = """
@@ -917,7 +947,7 @@ Test Document
 
 @pytest.mark.sphinx("html")
 def test_theme_css_warn_threshold(app: SphinxTestApp):
-    """16 tabs (> WARN_THRESHOLD=15) should log a warning but still render all tabs."""
+    """16 tabs (> WARN_THRESHOLD=15) should log a warning, but 20 tabs are generated anyway."""
     n = 16
     tabs = "\n".join(
         f"    .. tab:: Tab{i}{' (default)' if i == 0 else ''}\n\n        Content {i}.\n"
@@ -938,7 +968,7 @@ Test Document
     assert "hard to navigate" in warnings
 
     theme_css = (app.outdir / "_static" / "filter_tabs_theme.css").read_text()
-    for i in range(n):
+    for i in range(20):
         assert f'data-tab-index="{i}"]' in theme_css
 
 

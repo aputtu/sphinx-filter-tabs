@@ -44,6 +44,8 @@ TREE_IGNORE='.git|.tox|venv*|.venv*|env*|dist|build|*.egg-info|_build|__pycache_
             -name "env*" -o \
             -name "dist" -o \
             -name "build" -o \
+            -name ".log	" -o \
+            -name "test_out.txt" -o \
             -name "*.egg-info" -o \
             -name "htmlcov" -o \
             -name "image*" -o \
@@ -61,6 +63,7 @@ TREE_IGNORE='.git|.tox|venv*|.venv*|env*|dist|build|*.egg-info|_build|__pycache_
         -not -name '*.pyc' \
         -not -name '*.pyo' \
         -not -name '*.pdf' \
+        -not -name '*.log' \
         -not -name '.DS_Store' \
         -not -name 'Thumbs.db' \
         -not -name '.coverage' \
