@@ -150,7 +150,7 @@ def visit_filter_tabs_node(self: HTML5Translator, node: FilterTabsNode) -> None:
     # Legend
     legend_proxy = nodes.Element(classes=["sft-legend"], ids=[node["legend_id"]])
     self.body.append(self.starttag(legend_proxy, "legend"))
-    self.body.append(node["legend_text"])
+    self.body.append(self.encode(node["legend_text"]))
     self.body.append("</legend>")
 
     # Radio Group Container
@@ -180,11 +180,11 @@ def visit_filter_tab_node(self: HTML5Translator, node: FilterTabNode) -> None:
     self.body.append(self.starttag(radio_proxy, "input", **radio_attrs))
 
     # Label
-    self.body.append(f'<label for="{node["radio_id"]}">{node["tab_name"]}</label>')
+    self.body.append(f'<label for="{node["radio_id"]}">{self.encode(node["tab_name"])}</label>')
 
     # Screen Reader Description
     self.body.append(
-        f'<div class="sr-only" id="{node["desc_id"]}">Show content for {node["tab_name"]}</div>'
+        f'<div class="sr-only" id="{node["desc_id"]}">Show content for {self.encode(node["tab_name"])}</div>'
     )
 
 

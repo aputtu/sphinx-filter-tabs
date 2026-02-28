@@ -1,6 +1,20 @@
 Changelog
 =========
 
+Version 1.4.2 (2026-02-28)
+---------------------------
+
+**Security**
+
+* **HTML encoding**: All user-provided strings (tab names and legend text) are
+  now properly HTML-encoded before rendering to prevent cross-site scripting
+  (XSS) vulnerabilities.
+* **CSS validation**: The highlight color configuration is now validated to
+  ensure it contains only safe CSS color values, preventing potential CSS
+  injection.
+* **Security Test Suite**: Introduced a targetted security test suite to
+  verify these protections and prevent future regressions.
+
 Version 1.4.1 (2026-02-28)
 ---------------------------
 
