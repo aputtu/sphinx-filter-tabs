@@ -17,9 +17,10 @@ This extension provides `filter-tabs` and `tab` directives to create user-friend
 - **Fully Accessible:** WAI-ARIA compliant with native keyboard navigation and screen reader support
 - **Semantic HTML:** Uses standard form controls (radio buttons) for robust, predictable behavior
 - **Universal Compatibility:** Works in all environments where CSS is supported, including strict CSP policies
+- **Internationalization (i18n):** Built-in support for translations, including a complete Danish localization
 - **Easy Customization:** Theme colors and styling through simple CSS custom properties
 - **Multiple Output Formats:** Graceful fallback to sequential content in PDF/LaTeX builds
-- **Proven Reliability:** Comprehensive test suite across multiple Python and Sphinx versions
+- **100% Test Coverage:** Rigorous verification across all modules, Python versions, and Sphinx releases
 
 ## Quick Start
 
@@ -208,6 +209,7 @@ The project includes comprehensive tests covering:
 Tests run automatically on:
 - Python versions 3.10, 3.11, 3.12, 3.13, 3.14
 - Sphinx versions 7.0, 7.4, 8.0, 8.2, 9.0, 9.1
+- **100% Code Coverage** across all package modules
 - Multiple operating systems via GitHub Actions
 
 ```bash

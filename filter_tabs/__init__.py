@@ -7,7 +7,7 @@ from docutils import nodes as docutils_nodes
 from sphinx.application import Sphinx
 from sphinx.util.typing import ExtensionMetadata
 
-__version__ = "1.4.2"
+__version__ = "1.4.3"
 
 from .admonitions import setup_collapsible_admonitions
 from .assets import register_static_assets, write_theme_css

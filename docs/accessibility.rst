@@ -21,6 +21,7 @@ entirely CSS and semantic HTML, with no JavaScript dependencies:
 3. **ARIA Relationships (Connected Experience)**
 ------------------------------------------------
 * ``aria-labelledby`` links panels to their controlling radios
+* ``aria-controls`` connects radios to their corresponding panels for screen reader sync
 * ``aria-describedby`` connects radios to hidden descriptive text
 * Container's ``aria-labelledby`` points to the visible legend
 * **CSS-only benefit**: All relationships defined in HTML, completely static and reliable

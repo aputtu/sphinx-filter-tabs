@@ -1,6 +1,31 @@
 Changelog
 =========
 
+Version 1.4.3 (2026-02-28)
+---------------------------
+
+**Internationalization (i18n)**
+
+* **Danish Support**: Added full support for Danish translation (``da``). All
+  UI strings, including auto-generated legends (e.g., "Vælg
+  programmeringssprog"), are now localized.
+* **Translation Infrastructure**: Implemented gettext-style translation (``.po``/
+  ``.mo``) across all core modules. The extension is now ready for further
+  language contributions.
+
+**Accessibility & Polish**
+
+* **ARIA Refinement**: Added ``aria-controls`` attributes to radio buttons,
+  linking them explicitly to their corresponding panels for superior
+  screen reader synchronization.
+* **100% Test Coverage**: Reached the milestone of 100% code coverage across
+  every single file in the ``filter_tabs`` package, including error paths and
+  builder-specific edge cases.
+* **CI Stability**: Fixed formatting and import order issues in the test suite
+  that were blocking GitHub Actions.
+* **New Guidelines**: Added a comprehensive ``CONTRIBUTING.md`` to assist new
+  developers with setup, testing, and contribution workflows.
+
 Version 1.4.2 (2026-02-28)
 ---------------------------
 
