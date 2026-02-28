@@ -58,12 +58,12 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.add_config_value("filter_tabs_highlight_color", "#007bff", "html", [str])
     app.add_config_value("filter_tabs_debug_mode", False, "html", [bool])
     app.add_config_value("filter_tabs_enable_collapsible_admonitions", True, "html", [bool])
-    
+
     # Register message catalog for translations
     from pathlib import Path
+
     locale_dir = str(Path(__file__).parent / "locale")
     app.add_message_catalog("sphinx-filter-tabs", locale_dir)
-
 
     # Configuration for builders that don't support the interactive tab output.
     VisitorPair = tuple[NodeVisitorFunc, NodeVisitorFunc]
