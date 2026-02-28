@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 
 from sphinx.application import Sphinx
+from sphinx.locale import _
 from sphinx.util import logging
 
 from .config import _SFT_HARD_CAP
@@ -53,8 +54,10 @@ def write_theme_css(app: Sphinx, exception: Exception | None) -> None:
     # Basic CSS color validation to prevent injection
     if not re.match(r"^#?[a-zA-Z0-9\s,().%]+$", color) or ";" in color or "}" in color:
         logger.warning(
-            f"filter-tabs: invalid highlight color '{color}'. "
-            "Reverting to default '#007bff' to prevent CSS injection."
+            _(
+                "filter-tabs: invalid highlight color '{color}'. "
+                "Reverting to default '#007bff' to prevent CSS injection."
+            ).format(color=color)
         )
         color = "#007bff"
 

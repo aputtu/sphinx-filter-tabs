@@ -1,0 +1,41 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: sphinx-filter-tabs 1.4.2\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: da\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Choose {content_type}: {tab_names}"
+msgstr "Vælg {content_type}: {tab_names}"
+
+msgid "General information"
+msgstr "Generel information"
+
+msgid "Select {tab_name} tab"
+msgstr "Vælg fanen {tab_name}"
+
+msgid "programming language"
+msgstr "programmeringssprog"
+
+msgid "operating system"
+msgstr "operativsystem"
+
+msgid "package manager"
+msgstr "pakkehåndtering"
+
+msgid "interface"
+msgstr "grænseflade"
+
+msgid "environment"
+msgstr "miljø"
+
+msgid "installation method"
+msgstr "installationsmetode"
+
+msgid "option"
+msgstr "valgmulighed"
+
+msgid "filter-tabs: invalid highlight color '{color}'. Reverting to default '#007bff' to prevent CSS injection."
+msgstr "filter-tabs: ugyldig highlight-farve '{color}'. Bruger standard '#007bff' for at forhindre CSS-injection."

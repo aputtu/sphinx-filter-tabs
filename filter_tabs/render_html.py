@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from docutils import nodes
+from sphinx.locale import _
 from sphinx.util import logging
 from sphinx.writers.html import HTML5Translator
 
@@ -44,20 +45,26 @@ def render_html(
     else:
         tab_names = [s["tab_name"] for s in slots]
         content_type = infer_content_type(tab_names)
-        container["legend_text"] = f"Choose {content_type}: {', '.join(tab_names)}"
+        container["legend_text"] = _("Choose {content_type}: {tab_names}").format(
+            content_type=content_type, tab_names=", ".join(tab_names)
+        )
 
     # Logging and Capping Logic
     n = len(slots)
     if n > _SFT_HARD_CAP:
         logger.error(
-            f"filter-tabs: a tab group with {n} tabs was found. "
-            f"Tab groups are capped at {_SFT_HARD_CAP} to prevent unusable output. "
-            f"Selectors will be generated for indices 0–{_SFT_HARD_CAP - 1} only."
+            _(
+                "filter-tabs: a tab group with {n} tabs was found. "
+                "Tab groups are capped at {cap} to prevent unusable output. "
+                "Selectors will be generated for indices 0–{last} only."
+            ).format(n=n, cap=_SFT_HARD_CAP, last=_SFT_HARD_CAP - 1)
         )
     elif n > _SFT_WARN_THRESHOLD:
         logger.warning(
-            f"filter-tabs: a tab group with {n} tabs was found. "
-            f"Tab groups this large are hard to navigate; consider restructuring the content."
+            _(
+                "filter-tabs: a tab group with {n} tabs was found. "
+                "Tab groups this large are hard to navigate; consider restructuring the content."
+            ).format(n=n)
         )
 
     default_index = next((i for i, s in enumerate(slots) if s["is_default"]), 0)
@@ -87,7 +94,7 @@ def render_html(
             role="region",
         )
         general_panel["data-filter"] = "General"
-        general_panel["aria-label"] = "General information"
+        general_panel["aria-label"] = _("General information")
         general_panel.extend(c.deepcopy() for c in general_content)
         content_area += general_panel
 
@@ -170,6 +177,7 @@ def visit_filter_tab_node(self: HTML5Translator, node: FilterTabNode) -> None:
         "type": "radio",
         "name": node["group_id"],
         "aria-describedby": node["desc_id"],
+        "aria-controls": node["panel_id"],
         "data-tab-index": node["tab_index"],
     }
     if node.get("aria_label"):
@@ -184,7 +192,9 @@ def visit_filter_tab_node(self: HTML5Translator, node: FilterTabNode) -> None:
 
     # Screen Reader Description
     self.body.append(
-        f'<div class="sr-only" id="{node["desc_id"]}">Show content for {self.encode(node["tab_name"])}</div>'
+        f'<div class="sr-only" id="{node["desc_id"]}">'
+        f"{_('Select {tab_name} tab').format(tab_name=self.encode(node['tab_name']))}"
+        "</div>"
     )
 
 

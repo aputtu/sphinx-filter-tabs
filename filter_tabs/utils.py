@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from sphinx.locale import _
+
 
 @dataclass
 class IDGenerator:
@@ -35,13 +37,13 @@ def infer_content_type(tab_names: list[str]) -> str:
     PATTERNS = [
         (
             ["python", "javascript", "java", "c++", "rust", "go", "ruby", "php"],
-            "programming language",
+            _("programming language"),
         ),
-        (["windows", "mac", "macos", "linux", "ubuntu", "debian", "fedora"], "operating system"),
-        (["pip", "conda", "npm", "yarn", "cargo", "gem", "composer"], "package manager"),
-        (["cli", "gui", "terminal", "command", "console", "graphical"], "interface"),
-        (["development", "staging", "production", "test", "local"], "environment"),
-        (["source", "binary", "docker", "manual", "automatic"], "installation method"),
+        (["windows", "mac", "macos", "linux", "ubuntu", "debian", "fedora"], _("operating system")),
+        (["pip", "conda", "npm", "yarn", "cargo", "gem", "composer"], _("package manager")),
+        (["cli", "gui", "terminal", "command", "console", "graphical"], _("interface")),
+        (["development", "staging", "production", "test", "local"], _("environment")),
+        (["source", "binary", "docker", "manual", "automatic"], _("installation method")),
     ]
     lower_names = [name.lower() for name in tab_names]
     for keywords, content_type in PATTERNS:
@@ -51,4 +53,4 @@ def infer_content_type(tab_names: list[str]) -> str:
         for name in lower_names:
             if any(keyword in name for keyword in keywords):
                 return content_type
-    return "option"
+    return _("option")

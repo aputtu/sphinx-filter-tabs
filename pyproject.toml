@@ -86,4 +86,4 @@ include = ["filter_tabs*"]
 [tool.setuptools.package-data]
 # This explicitly tells setuptools: "for the 'filter_tabs' package,
 # find all files in the 'static' directory that end with .css and include them."
-filter_tabs = ["static/*.css"]
+filter_tabs = ["static/*.css", "locale/**/*.po", "locale/**/*.mo"]
