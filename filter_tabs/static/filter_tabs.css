@@ -1,12 +1,14 @@
 /* Sphinx Filter Tabs - Enhanced CSS with improved accessibility */
 
+
+
 /* Main container */
 .sft-container {
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--sft-border, #e0e0e0);
     border-radius: var(--sft-border-radius, 8px);
+    background: var(--sft-bg, #ffffff);    
     overflow: hidden;
     margin: 1.5em 0;
-    background: white;
 }
 
 /* Semantic structure */
@@ -18,12 +20,12 @@
 
 /* Visible, meaningful legend */
 .sft-legend {
-    background: #f8f9fa;
+    background: var(--sft-header-bg, #f8f9fa);
     padding: 12px 20px;
     margin: 0;
     font-weight: 600;
-    color: #495057;
-    border-bottom: 1px solid #e0e0e0;
+    color: var(--sft-text, #495057);
+    border-bottom: 1px solid var(--sft-border, #e0e0e0);
     width: 100%;
     font-size: 0.95em;
 }
@@ -32,8 +34,8 @@
 .sft-radio-group {
     display: flex;
     flex-wrap: wrap;
-    background: #f8f9fa;
-    border-bottom: 1px solid #e0e0e0;
+    background: var(--sft-header-bg, rgba(0,0,0,0.03));
+    border-bottom: 1px solid var(--sft-border, #e0e0e0);
     padding: 0 10px;
 }
 
@@ -54,7 +56,7 @@
     cursor: pointer;
     transition: all 0.2s ease;
     border-bottom: 3px solid transparent;
-    color: #6c757d;
+    color: var(--sft-text-muted, #6c757d);
     font-weight: 500;
     font-size: var(--sft-tab-font-size, 1em);
     position: relative;
@@ -65,7 +67,7 @@
 .sft-radio-group input[type="radio"]:checked + label {
     color: var(--sft-highlight-color, #007bff);
     border-bottom-color: var(--sft-highlight-color, #007bff);
-    background: white;
+    background: var(--sft-tab-active-bg, #ffffff);
     font-weight: 600;
 }
 
@@ -79,7 +81,7 @@
 
 /* Hover effects */
 .sft-radio-group label:hover {
-    color: #495057;
+    color: var(--sft-text, #495057);
     background: color-mix(in srgb, var(--sft-highlight-color, #007bff) 8%, transparent);
 }
 
@@ -135,7 +137,7 @@ strong, b, em, i {
     display: block;
     margin-bottom: 20px;
     padding-bottom: 20px;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid var(--sft-border, #eeeeee);
 }
 
 /* Panel visibility selectors are generated dynamically into filter_tabs_theme.css
@@ -190,8 +192,8 @@ strong, b, em, i {
 .sft-panel blockquote {
     margin: 1em 0;
     padding: 0.5em 1em;
-    border-left: 4px solid #ddd;
-    background: #f9f9f9;
+    border-left: 4px solid var(--sft-border, #dddddd);
+    background: var(--sft-blockquote-bg, #f9f9f9);
 }
 
 /* Screen reader only content */
@@ -226,7 +228,7 @@ strong, b, em, i {
 
 /* Collapsible sections */
 .collapsible-section {
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--sft-border, #e0e0e0);
     border-left: 4px solid var(--sft-collapsible-accent-color, #17a2b8);
     border-radius: 4px;
     margin-top: 1em;
@@ -237,7 +239,7 @@ strong, b, em, i {
     cursor: pointer;
     padding: 12px;
     font-weight: bold;
-    background-color: #f9f9f9;
+    background-color: var(--sft-summary-bg, #f9f9f9);
     outline: none;
     list-style: none;
 }
@@ -247,7 +249,7 @@ strong, b, em, i {
 }
 
 .collapsible-section[open] > summary { 
-    border-bottom: 1px solid #e0e0e0; 
+    border-bottom: 1px solid var(--sft-border, #e0e0e0); 
 }
 
 .custom-arrow { 

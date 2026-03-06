@@ -1000,3 +1000,31 @@ Test Document
         assert f'data-tab-index="{i}"]' in theme_css
     # Index 20 must NOT have a selector (capped)
     assert 'data-tab-index="20"]' not in theme_css
+
+
+@pytest.mark.sphinx("html")
+def test_configuration_theme_mode_and_flavor(app: SphinxTestApp):
+    """Test that theme modes and flavors apply correctly."""
+    app.config.filter_tabs_theme_mode = "opinionated"
+    app.config.filter_tabs_flavor = "minimal"
+
+    content = """
+Test Document
+=============
+
+.. filter-tabs::
+
+    .. tab:: Test
+        Test content
+"""
+    app.srcdir.joinpath("index.rst").write_text(content)
+    app.build()
+
+    theme_css_path = app.outdir / "_static" / "filter_tabs_theme.css"
+    assert theme_css_path.exists()
+    theme_content = theme_css_path.read_text(encoding="utf-8")
+
+    assert "--sft-bg: #ffffff" in theme_content
+    assert "--sft-border: #e0e0e0" in theme_content
+    assert "--sft-border-radius: 0" in theme_content
+    assert "--sft-tab-font-size: 0.9em" in theme_content

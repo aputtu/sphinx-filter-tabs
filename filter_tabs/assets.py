@@ -30,11 +30,10 @@ def register_static_assets(app: Sphinx) -> None:
 
 def write_theme_css(app: Sphinx, exception: Exception | None) -> None:
     """Write the generated theme CSS file after the build completes."""
-    if exception is not None:
-        return
-    if app.builder.format != "html":
+    if exception is not None or app.builder.format != "html":
         return
 
+    # 1. Determine Visibility Block (Tabs logic)
     def _selector(i: int) -> str:
         return (
             f'.sft-radio-group input[type="radio"][data-tab-index="{i}"]'
@@ -43,30 +42,45 @@ def write_theme_css(app: Sphinx, exception: Exception | None) -> None:
 
     selectors = ",\n".join(_selector(i) for i in range(_SFT_HARD_CAP))
     visibility_block = (
-        "/* Panel visibility — generated at build time, scoped with child\n"
-        " * combinator (>) to isolate nested tab groups. */\n"
-        f"{selectors} {{\n"
-        "    display: block;\n"
-        "}\n"
+        "/* Panel visibility — generated at build time */\n"
+        f"{selectors} {{\n    display: block;\n}}\n"
     )
 
-    color = app.config.filter_tabs_highlight_color
-    # Basic CSS color validation to prevent injection
+    # 2. Extract and Validate Highlight Color
+    color = getattr(app.config, "filter_tabs_highlight_color", "#007bff")
     if not re.match(r"^#?[a-zA-Z0-9\s,().%]+$", color) or ";" in color or "}" in color:
         logger.warning(
-            _(
-                "filter-tabs: invalid highlight color '{color}'. "
-                "Reverting to default '#007bff' to prevent CSS injection."
-            ).format(color=color)
+            _("filter-tabs: invalid highlight color '{color}'. Reverting to default.").format(
+                color=color
+            )
         )
         color = "#007bff"
 
+    # 3. Handle Theme Modes
+    if app.config.filter_tabs_theme_mode == "native":
+        # Native mode: clear backgrounds and borders to inherit from the theme
+        mode_vars = "    --sft-bg: transparent;\n    --sft-border: transparent;"
+    else:
+        # Opinionated/Default: use the classic look
+        mode_vars = "    --sft-bg: #ffffff;\n    --sft-border: #e0e0e0;"
+
+    # 4. Handle Flavors (Sample logic)
+    flavor_vars = ""
+    if app.config.filter_tabs_flavor == "minimal":
+        flavor_vars = "    --sft-border-radius: 0;\n    --sft-tab-font-size: 0.9em;\n"
+
+    # 5. Assemble the CSS
     theme_css = (
         "/* sphinx-filter-tabs: generated theme — do not edit by hand */\n"
-        f":root {{ --sft-highlight-color: {color}; }}\n"
-        "\n"
+        ":root {\n"
+        f"    --sft-highlight-color: {color};\n"
+        f"{mode_vars}\n"
+        f"{flavor_vars}"
+        "}\n\n"
         f"{visibility_block}"
     )
+
+    # 6. Write to file
     static_dest = Path(app.outdir) / "_static"
     static_dest.mkdir(parents=True, exist_ok=True)
     theme_file = static_dest / "filter_tabs_theme.css"

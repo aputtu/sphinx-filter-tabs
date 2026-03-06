@@ -34,7 +34,8 @@ requiring no JavaScript for core functionality. This ensures maximum compatibili
 performance, and reliability across all environments.
 * **Accessible:** Full WAI-ARIA compliance
 * **Keyboard Navigation:** Native keyboard navigation via standard form controls (arrow keys, Tab, Space).
-* **Customizable:** Easily theme color directly from your ``conf.py``.
+* **Customizable:** Easily theme colors and layout flavors directly from your ``conf.py``.
+* **Collapsible Admonitions:** Optional support for rendering Details/Summary via ``filter_tabs_enable_collapsible_admonitions``.
 * **Graceful Fallback:** Renders as simple admonitions in non-HTML outputs like PDF/LaTeX.
 * **Select default tab:** Choose which tab to show by default.
 

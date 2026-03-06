@@ -7,7 +7,7 @@ from docutils import nodes as docutils_nodes
 from sphinx.application import Sphinx
 from sphinx.util.typing import ExtensionMetadata
 
-__version__ = "1.4.3"
+__version__ = "1.5.0"
 
 from .admonitions import setup_collapsible_admonitions
 from .assets import register_static_assets, write_theme_css
@@ -56,6 +56,8 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     """Set up the sphinx-filter-tabs extension."""
 
     app.add_config_value("filter_tabs_highlight_color", "#007bff", "html", [str])
+    app.add_config_value("filter_tabs_theme_mode", "native", "html", [str])
+    app.add_config_value("filter_tabs_flavor", "default", "html", [str])
     app.add_config_value("filter_tabs_debug_mode", False, "html", [bool])
     app.add_config_value("filter_tabs_enable_collapsible_admonitions", True, "html", [bool])
 

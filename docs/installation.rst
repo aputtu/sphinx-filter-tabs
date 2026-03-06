@@ -35,7 +35,12 @@ to your ``conf.py``:
 
    # Essential theming
    filter_tabs_highlight_color = '#007bff'  # Active tab highlight color
-   
+   filter_tabs_theme_mode = 'native'        # Can be 'native' or other specific theme variables
+   filter_tabs_flavor = 'default'           # Set styling flavor
+
+   # Features
+   filter_tabs_enable_collapsible_admonitions = True # Enable/disable collapsible admonition rendering
+
    # Development option
    filter_tabs_debug_mode = False           # Enable debug logging
 

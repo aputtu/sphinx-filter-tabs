@@ -1,8 +1,22 @@
 Changelog
 =========
 
+Version 1.5.0 (2026-03-05)
+--------------------------
+
+**Theming & Layout Refinement**
+
+* **CSS Variables Theming**: Refactored the core stylesheet to utilize CSS variables for seamless theme integration.
+* **New Configuration Options**: Added ``filter_tabs_theme_mode``, ``filter_tabs_flavor``, and ``filter_tabs_enable_collapsible_admonitions`` for enhanced visual control and behavior flexibility.
+* **Layout Enhancements**: Refined sidebar layout to handle vertical stacking correctly and improved overall UI styling.
+
+**Developer & Maintenance Fixes**
+
+* **Code Quality**: Addressed lingering code smells and fixed undefined name issues in the Sphix configuration.
+* **Test Robustness**: Finalized UI implementation tests, fixed failing edge-cases, and ensured the highest code quality standards.
+
 Version 1.4.3 (2026-02-28)
----------------------------
+--------------------------
 
 **Internationalization (i18n)**
 
