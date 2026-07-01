@@ -1,15 +1,15 @@
-from pathlib import Path  # Use the modern pathlib instead
+from pathlib import Path
 
 import pytest
 
-# This line activates the sphinx testing plugin
+from tests.helpers import project_root
+
 pytest_plugins = "sphinx.testing.fixtures"
 
 
-# This fixture provides the root directory of the project
 @pytest.fixture(scope="session")
 def rootdir() -> Path:
-    return Path(__file__).parent.parent.absolute()
+    return project_root()
 
 
 def pytest_addoption(parser):

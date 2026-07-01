@@ -1,8 +1,12 @@
-# tests/test_security.py
+import subprocess
+import sys
+import textwrap
 
 import pytest
 from bs4 import BeautifulSoup
 from sphinx.testing.util import SphinxTestApp
+
+from tests.helpers import build_index, html_text, read_theme_css
 
 
 @pytest.mark.sphinx("html")
@@ -19,17 +23,16 @@ Test XSS
 
         Content
 """
-    app.srcdir.joinpath("index.rst").write_text(content)
-    app.build()
+    build_index(app, content)
 
-    html_content = (app.outdir / "index.html").read_text()
+    html_content = html_text(app)
 
     # Check if the raw payload exists in the HTML
     assert xss_payload not in html_content, "XSS payload found unescaped in HTML!"
 
     # Check if it's escaped
     soup = BeautifulSoup(html_content, "html.parser")
-    label = soup.select_one(".sft-radio-group label")
+    label = soup.select_one(".sft-interactive label")
     assert label.text.strip() == xss_payload, (
         "Tab name should match payload textually but be escaped in HTML"
     )
@@ -49,10 +52,9 @@ Test XSS Legend
    .. tab:: Python
       Content
 """
-    app.srcdir.joinpath("index.rst").write_text(content)
-    app.build()
+    build_index(app, content)
 
-    html_content = (app.outdir / "index.html").read_text()
+    html_content = html_text(app)
 
     # Check if the raw payload exists in the HTML
     assert xss_payload not in html_content, "XSS payload (legend) found unescaped in HTML!"
@@ -80,12 +82,9 @@ Test CSS Injection
    .. tab:: Test
       Content
 """
-    app.srcdir.joinpath("index.rst").write_text(content)
-    app.build()
+    build_index(app, content)
 
-    theme_css_path = app.outdir / "_static" / "filter_tabs_theme.css"
-    assert theme_css_path.exists()
-    theme_content = theme_css_path.read_text(encoding="utf-8")
+    theme_content = read_theme_css(app)
 
     # If it's vulnerable, we'll see the unescaped payload breaking the structure
     # A secure implementation would either validate the color or escape it (though escaping CSS is tricky)
@@ -93,3 +92,68 @@ Test CSS Injection
     assert "body { background: url" not in theme_content, (
         "CSS injection payload found in generated theme CSS!"
     )
+    assert "--sft-highlight-color: var(--pst-color-primary" in theme_content
+    assert "#007bff" not in theme_content
+
+
+def test_generated_ids_are_sanitized_for_unusual_docnames(tmp_path, rootdir):
+    """Generated tab IDs should not preserve punctuation from source docnames."""
+    docname = 'bad" onclick="alert(1)'
+    srcdir = tmp_path / "src"
+    outdir = tmp_path / "out"
+    srcdir.mkdir()
+    srcdir.joinpath("conf.py").write_text(
+        textwrap.dedent(
+            f"""
+            import sys
+
+            sys.path.insert(0, {str(rootdir)!r})
+
+            extensions = ["filter_tabs"]
+            project = "Security test"
+            root_doc = {docname!r}
+            html_static_path = []
+            """
+        ),
+        encoding="utf-8",
+    )
+    srcdir.joinpath(f"{docname}.rst").write_text(
+        textwrap.dedent(
+            """
+            Test
+            ====
+
+            .. filter-tabs::
+
+               .. tab:: CLI
+
+                  Content.
+            """
+        ),
+        encoding="utf-8",
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "sphinx.cmd.build",
+            "-q",
+            "-b",
+            "html",
+            str(srcdir),
+            str(outdir),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+
+    html = outdir.joinpath(f"{docname}.html").read_text(encoding="utf-8")
+    assert "filter-group-bad&quot;" not in html
+
+    soup = BeautifulSoup(html, "html.parser")
+    radio = soup.select_one('.sft-interactive input[type="radio"]')
+    assert radio["aria-controls"].startswith("filter-group-bad-onclick-alert-1-")
+    label = soup.select_one(".sft-interactive label")
+    assert '"' not in label["for"]

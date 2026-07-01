@@ -1,0 +1,9 @@
+SFT_WARN_THRESHOLD = 15
+SFT_DEFAULT_SELECTOR_COUNT = 20
+SFT_SR_ONLY = "sft-sr-only"
+SFT_INTERACTIVE = "sft-interactive"
+SFT_COLLAPSIBLE_CLASS = "sft-collapsible"
+SFT_EXPANDED_CLASS = "sft-expanded"
+SFT_COLLAPSIBLE_SECTION = "sft-collapsible-section"
+SFT_COLLAPSIBLE_CONTENT = "sft-collapsible-content"
+SFT_CUSTOM_ARROW = "sft-custom-arrow"

@@ -6,9 +6,21 @@ from docutils import nodes
 from docutils.parsers.rst import Directive, directives
 from sphinx.util import logging
 
-from .nodes import FilterTabSlotNode, FilterTabsNode
+from .nodes import FilterTabSlotNode, FilterTabsNode, split_filter_tab_children
 
 logger = logging.getLogger(__name__)
+
+_SFT_CONTEXT_KEY = "_sft_context"
+LogLocation = tuple[str | None, int | None]
+
+
+def _get_sft_context(document: nodes.document) -> int:
+    value = document.attributes.get(_SFT_CONTEXT_KEY, 0)
+    return value if isinstance(value, int) else 0
+
+
+def _directive_location(directive: Directive) -> LogLocation:
+    return directive.state_machine.get_source_and_line(directive.lineno)
 
 
 class TabDirective(Directive):
@@ -20,10 +32,7 @@ class TabDirective(Directive):
     option_spec = {"aria-label": directives.unchanged}
 
     def run(self) -> list[nodes.Node]:
-        env = self.state.document.settings.env
-
-        sft_context = getattr(env, "sft_context", 0)
-        if not isinstance(sft_context, int) or sft_context <= 0:
+        if _get_sft_context(self.state.document) <= 0:
             raise self.error("`tab` can only be used inside a `filter-tabs` directive.")
 
         try:
@@ -32,6 +41,7 @@ class TabDirective(Directive):
             raise self.error(f"Invalid tab argument: {e}") from e
 
         slot = FilterTabSlotNode()
+        slot.source, slot.line = _directive_location(self)
         slot["tab_name"] = tab_name
         slot["is_default"] = is_default
         slot["aria_label"] = self.options.get("aria-label", None)
@@ -68,27 +78,24 @@ class FilterTabsDirective(Directive):
     has_content = True
     required_arguments = 0
     optional_arguments = 0
-    option_spec = {"legend": directives.unchanged}
+    option_spec = {"legend": directives.unchanged, "hide-legend": directives.flag}
 
     def run(self) -> list[nodes.Node]:
-        env = self.state.document.settings.env
-
-        if not hasattr(env, "sft_context") or not isinstance(env.sft_context, int):
-            env.sft_context = 0
-
-        env.sft_context += 1
+        document = self.state.document
+        previous_context = _get_sft_context(document)
+        document[_SFT_CONTEXT_KEY] = previous_context + 1
         try:
             # Parse content into a temporary container; TabDirective will produce
             # FilterTabSlotNode instances and everything else is general content.
             temp_container = nodes.container()
             self.state.nested_parse(self.content, self.content_offset, temp_container)
         finally:
-            env.sft_context -= 1
+            if previous_context:
+                document[_SFT_CONTEXT_KEY] = previous_context
+            else:
+                document.attributes.pop(_SFT_CONTEXT_KEY, None)
 
-        slots = [c for c in temp_container.children if isinstance(c, FilterTabSlotNode)]
-        general_content = [
-            c for c in temp_container.children if not isinstance(c, FilterTabSlotNode)
-        ]
+        slots, general_content = split_filter_tab_children(temp_container.children)
 
         if not slots:
             msg = (
@@ -105,7 +112,9 @@ class FilterTabsDirective(Directive):
             slots[0]["is_default"] = True
 
         ft_node = FilterTabsNode()
+        ft_node.source, ft_node.line = _directive_location(self)
         ft_node["custom_legend"] = self.options.get("legend")
+        ft_node["hide_legend"] = "hide-legend" in self.options
 
         # Add general content first, then tab slots — all as real children.
         for child in general_content:
@@ -123,12 +132,20 @@ class FilterTabsDirective(Directive):
                 raise self.error(f"Duplicate tab name '{name}'. Each tab must have a unique name.")
             names.append(name)
             if not slot.children:
-                logger.warning(f"Tab '{name}' has no content.")
+                logger.warning(
+                    f"Tab '{name}' has no content.",
+                    type="filter-tabs",
+                    subtype="empty-tab",
+                    location=slot,
+                )
 
         defaults = [s for s in slots if s["is_default"]]
         if len(defaults) > 1:
             default_names = [s["tab_name"] for s in defaults]
             logger.warning(
                 f"Multiple tabs marked as default: {', '.join(default_names)}. "
-                f"Using first default: '{default_names[0]}'"
+                f"Using first default: '{default_names[0]}'",
+                type="filter-tabs",
+                subtype="multiple-defaults",
+                location=defaults[0],
             )

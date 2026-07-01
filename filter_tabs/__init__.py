@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from docutils import nodes as docutils_nodes
 from sphinx.application import Sphinx
 from sphinx.util.typing import ExtensionMetadata
 
-__version__ = "1.5.0"
+__version__ = "1.6.0"
 
 from .admonitions import setup_collapsible_admonitions
 from .assets import register_static_assets, write_theme_css
@@ -19,6 +20,7 @@ from .nodes import (
     FilterTabsContentNode,
     FilterTabSlotNode,
     FilterTabsNode,
+    RenderedFilterTabsNode,
     SummaryNode,
 )
 from .render_html import (
@@ -26,77 +28,67 @@ from .render_html import (
     depart_filter_tab_node,
     depart_filter_tab_panel_node,
     depart_filter_tabs_content_node,
-    depart_filter_tabs_node,
+    depart_rendered_filter_tabs_node,
     depart_summary_node,
     visit_details_node,
     visit_filter_tab_node,
     visit_filter_tab_panel_node,
     visit_filter_tabs_content_node,
-    visit_filter_tabs_node,
+    visit_rendered_filter_tabs_node,
     visit_summary_node,
 )
 from .transforms import process_filter_tabs_nodes
 
 __all__ = ["setup", "__version__"]
 
-# Type alias for the generic visitor/depart functions used as safety-net skips.
-NodeVisitorFunc = Callable[[Any, docutils_nodes.Element], None]
+# Sphinx visitor functions receive the active translator and a concrete node
+# subtype; the registration table intentionally stores those subtypes together.
+NodeVisitorFunc = Callable[[Any, Any], None]
 
 
-def _visit_skip_node(self: NodeVisitorFunc, node: docutils_nodes.Element) -> None:
+def _visit_skip_node(self: Any, node: docutils_nodes.Element) -> None:
     """Safety-net visitor for intermediate nodes: skip entirely."""
     raise docutils_nodes.SkipNode
 
 
-def _depart_noop(self: NodeVisitorFunc, node: docutils_nodes.Element) -> None:
+def _depart_noop(self: Any, node: docutils_nodes.Element) -> None:
     pass
 
 
 def setup(app: Sphinx) -> ExtensionMetadata:
     """Set up the sphinx-filter-tabs extension."""
 
-    app.add_config_value("filter_tabs_highlight_color", "#007bff", "html", [str])
+    app.add_config_value("filter_tabs_highlight_color", "auto", "html", [str])
     app.add_config_value("filter_tabs_theme_mode", "native", "html", [str])
     app.add_config_value("filter_tabs_flavor", "default", "html", [str])
     app.add_config_value("filter_tabs_debug_mode", False, "html", [bool])
-    app.add_config_value("filter_tabs_enable_collapsible_admonitions", True, "html", [bool])
+    app.add_config_value("filter_tabs_enable_collapsible_admonitions", False, "html", [bool])
 
-    # Register message catalog for translations
-    from pathlib import Path
+    app.add_message_catalog("sphinx-filter-tabs", str(Path(__file__).parent / "locale"))
 
-    locale_dir = str(Path(__file__).parent / "locale")
-    app.add_message_catalog("sphinx-filter-tabs", locale_dir)
-
-    # Configuration for builders that don't support the interactive tab output.
     VisitorPair = tuple[NodeVisitorFunc, NodeVisitorFunc]
     _skip: VisitorPair = (_visit_skip_node, _depart_noop)
     _skip_builders = ("latex", "text", "man", "texinfo", "xml", "epub", "rinoh", "dummy")
     _skip_kwargs: dict[str, VisitorPair] = {b: _skip for b in _skip_builders}
 
-    # Intermediate nodes — stored in .doctrees, replaced at write time.
-    app.add_node(
-        FilterTabsNode, html=(visit_filter_tabs_node, depart_filter_tabs_node), **_skip_kwargs
+    html_nodes: tuple[tuple[type[docutils_nodes.Element], VisitorPair], ...] = (
+        (
+            RenderedFilterTabsNode,
+            (visit_rendered_filter_tabs_node, depart_rendered_filter_tabs_node),
+        ),
+        (FilterTabNode, (visit_filter_tab_node, depart_filter_tab_node)),
+        (
+            FilterTabsContentNode,
+            (visit_filter_tabs_content_node, depart_filter_tabs_content_node),
+        ),
+        (FilterTabPanelNode, (visit_filter_tab_panel_node, depart_filter_tab_panel_node)),
+        (DetailsNode, (visit_details_node, depart_details_node)),
+        (SummaryNode, (visit_summary_node, depart_summary_node)),
     )
+    for node_class, html_visitors in html_nodes:
+        app.add_node(node_class, html=html_visitors, **_skip_kwargs)
+    app.add_node(FilterTabsNode, html=_skip, **_skip_kwargs)
     app.add_node(FilterTabSlotNode, html=_skip, **_skip_kwargs)
-
-    # Resolved semantic nodes — only appear after doctree-resolved.
-    app.add_node(
-        FilterTabNode, html=(visit_filter_tab_node, depart_filter_tab_node), **_skip_kwargs
-    )
-    app.add_node(
-        FilterTabsContentNode,
-        html=(visit_filter_tabs_content_node, depart_filter_tabs_content_node),
-        **_skip_kwargs,
-    )
-    app.add_node(
-        FilterTabPanelNode,
-        html=(visit_filter_tab_panel_node, depart_filter_tab_panel_node),
-        **_skip_kwargs,
-    )
-
-    # Collapsible Admonition nodes
-    app.add_node(DetailsNode, html=(visit_details_node, depart_details_node), **_skip_kwargs)
-    app.add_node(SummaryNode, html=(visit_summary_node, depart_summary_node), **_skip_kwargs)
 
     app.add_directive("filter-tabs", FilterTabsDirective)
     app.add_directive("tab", TabDirective)
@@ -104,7 +96,7 @@ def setup(app: Sphinx) -> ExtensionMetadata:
     app.connect("builder-inited", register_static_assets)
     app.connect("doctree-resolved", process_filter_tabs_nodes)
     app.connect("doctree-resolved", setup_collapsible_admonitions)
-    app.connect("build-finished", write_theme_css)
+    app.connect("env-updated", write_theme_css)
 
     return {
         "version": __version__,

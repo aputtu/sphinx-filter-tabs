@@ -2,15 +2,17 @@ from __future__ import annotations
 
 from docutils import nodes
 from sphinx.application import Sphinx
+from sphinx.locale import get_translation
 from sphinx.util import logging
 
-from .config import FilterTabsConfig
-from .nodes import FilterTabSlotNode, FilterTabsNode
+from .constants import SFT_WARN_THRESHOLD
+from .nodes import FilterTabsNode, split_filter_tab_children
 from .render_fallback import render_fallback
 from .render_html import render_html
 from .utils import IDGenerator
 
 logger = logging.getLogger(__name__)
+_ = get_translation("sphinx-filter-tabs")
 
 
 def validate_tabs_structure(ft_node: FilterTabsNode) -> bool:
@@ -19,16 +21,25 @@ def validate_tabs_structure(ft_node: FilterTabsNode) -> bool:
     Verifies that the node contains at least one slot and that all slots
     have a name. Returns True if valid, False otherwise.
     """
-    slots = [c for c in ft_node.children if isinstance(c, FilterTabSlotNode)]
+    slots, _general_content = split_filter_tab_children(ft_node.children)
 
     if not slots:
-        logger.error(f"filter-tabs: {ft_node.source}:{ft_node.line}: Missing tab slots.")
+        logger.error(
+            "filter-tabs: Missing tab slots.",
+            type="filter-tabs",
+            subtype="structure",
+            location=ft_node,
+        )
         return False
 
     for i, slot in enumerate(slots):
         if not slot.get("tab_name"):
             logger.error(
-                f"filter-tabs: {ft_node.source}:{ft_node.line}: Slot {i} missing tab_name."
+                "filter-tabs: Slot %s missing tab_name.",
+                i,
+                type="filter-tabs",
+                subtype="structure",
+                location=slot,
             )
             return False
 
@@ -40,7 +51,6 @@ def process_filter_tabs_nodes(app: Sphinx, doctree: nodes.document, docname: str
 
     Connected to the ``doctree-resolved`` event.
     """
-    config = FilterTabsConfig.from_sphinx_config(app.config)
     is_html = app.builder.format == "html"
 
     # Per-document counter stored on the doctree node itself.
@@ -55,16 +65,29 @@ def process_filter_tabs_nodes(app: Sphinx, doctree: nodes.document, docname: str
             continue
 
         custom_legend: str | None = ft_node.get("custom_legend")
+        hide_legend = bool(ft_node.get("hide_legend", False))
 
-        slots = [c for c in ft_node.children if isinstance(c, FilterTabSlotNode)]
-        general_content = [c for c in ft_node.children if not isinstance(c, FilterTabSlotNode)]
+        slots, general_content = split_filter_tab_children(ft_node.children)
+        n = len(slots)
+        if n > SFT_WARN_THRESHOLD:
+            logger.warning(
+                _(
+                    "filter-tabs: a tab group with {n} tabs was found. "
+                    "Tab groups this large can be hard to navigate; "
+                    "consider restructuring the content."
+                ).format(n=n),
+                type="filter-tabs",
+                subtype="large-group",
+                location=ft_node,
+            )
 
         current = doctree.get(doc_counter_key, 0) + 1
         doctree[doc_counter_key] = current
-        group_id = f"filter-group-{docname.replace('/', '-')}-{current}"
+        safe_docname = nodes.make_id(docname) or "document"
+        group_id = f"filter-group-{safe_docname}-{current}"
         id_gen = IDGenerator(group_id)
 
-        if config.debug_mode:
+        if getattr(app.config, "filter_tabs_debug_mode", False):
             logger.info(
                 f"filter-tabs: resolving group '{group_id}' for builder '{app.builder.name}'"
             )
@@ -74,9 +97,8 @@ def process_filter_tabs_nodes(app: Sphinx, doctree: nodes.document, docname: str
                 slots,
                 general_content,
                 custom_legend,
+                hide_legend,
                 id_gen,
-                config,
-                app.env,
             )
         else:
             replacement = render_fallback(slots, general_content)

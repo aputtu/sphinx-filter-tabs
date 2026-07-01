@@ -3,41 +3,38 @@ from __future__ import annotations
 from typing import Any
 
 from docutils import nodes
-from sphinx.locale import _
-from sphinx.util import logging
+from sphinx.locale import get_translation
 from sphinx.writers.html import HTML5Translator
 
-from .config import _SFT_HARD_CAP, _SFT_WARN_THRESHOLD, FilterTabsConfig
+from .constants import SFT_INTERACTIVE, SFT_SR_ONLY
 from .nodes import (
     DetailsNode,
     FilterTabNode,
     FilterTabPanelNode,
     FilterTabsContentNode,
     FilterTabSlotNode,
-    FilterTabsNode,
+    RenderedFilterTabsNode,
     SummaryNode,
 )
 from .utils import IDGenerator, infer_content_type
 
-logger = logging.getLogger(__name__)
+_ = get_translation("sphinx-filter-tabs")
 
 
 def render_html(
     slots: list[FilterTabSlotNode],
     general_content: list[nodes.Node],
     custom_legend: str | None,
+    hide_legend: bool,
     id_gen: IDGenerator,
-    config: FilterTabsConfig,
-    env: Any,
 ) -> list[nodes.Node]:
-    """Produce semantic FilterTabsNode structure."""
-    container = FilterTabsNode(
+    """Produce the resolved HTML node structure."""
+    container = RenderedFilterTabsNode(
         classes=["sft-container"],
-        role="region",
     )
-    container["aria-labelledby"] = id_gen.legend_id()
     container["group_id"] = id_gen.group_id
     container["legend_id"] = id_gen.legend_id()
+    container["hide_legend"] = hide_legend
 
     # Resolve legend text
     if custom_legend:
@@ -49,24 +46,6 @@ def render_html(
             content_type=content_type, tab_names=", ".join(tab_names)
         )
 
-    # Logging and Capping Logic
-    n = len(slots)
-    if n > _SFT_HARD_CAP:
-        logger.error(
-            _(
-                "filter-tabs: a tab group with {n} tabs was found. "
-                "Tab groups are capped at {cap} to prevent unusable output. "
-                "Selectors will be generated for indices 0–{last} only."
-            ).format(n=n, cap=_SFT_HARD_CAP, last=_SFT_HARD_CAP - 1)
-        )
-    elif n > _SFT_WARN_THRESHOLD:
-        logger.warning(
-            _(
-                "filter-tabs: a tab group with {n} tabs was found. "
-                "Tab groups this large are hard to navigate; consider restructuring the content."
-            ).format(n=n)
-        )
-
     default_index = next((i for i, s in enumerate(slots) if s["is_default"]), 0)
 
     # Add tab marker nodes (radio + label info)
@@ -76,6 +55,7 @@ def render_html(
             is_default=(i == default_index),
             aria_label=slot.get("aria_label"),
             radio_id=id_gen.radio_id(i),
+            label_id=id_gen.label_id(i),
             desc_id=id_gen.desc_id(i),
             panel_id=id_gen.panel_id(i),
             tab_index=str(i),
@@ -91,10 +71,8 @@ def render_html(
     if general_content:
         general_panel = FilterTabPanelNode(
             classes=["sft-panel"],
-            role="region",
         )
         general_panel["data-filter"] = "General"
-        general_panel["aria-label"] = _("General information")
         general_panel.extend(c.deepcopy() for c in general_content)
         content_area += general_panel
 
@@ -103,12 +81,9 @@ def render_html(
         panel = FilterTabPanelNode(
             classes=["sft-panel"],
             ids=[id_gen.panel_id(i)],
-            role="tabpanel",
-            tabindex="0",
         )
         panel["data-tab"] = slot["tab_name"].lower().replace(" ", "-")
         panel["data-tab-index"] = str(i)
-        panel["aria-labelledby"] = id_gen.radio_id(i)
         panel.extend(c.deepcopy() for c in slot.children)
         content_area += panel
 
@@ -131,8 +106,10 @@ def _get_starttag_attrs(node: nodes.Element, exclude_keys: tuple[str, ...] = ())
         "backrefs",
         "legend_text",
         "legend_id",
+        "hide_legend",
         "group_id",
         "radio_id",
+        "label_id",
         "desc_id",
         "panel_id",
         "tab_index",
@@ -146,33 +123,37 @@ def _get_starttag_attrs(node: nodes.Element, exclude_keys: tuple[str, ...] = ())
     return attrs
 
 
-def visit_filter_tabs_node(self: HTML5Translator, node: FilterTabsNode) -> None:
+def visit_rendered_filter_tabs_node(self: HTML5Translator, node: RenderedFilterTabsNode) -> None:
     # Outer container (div)
     self.body.append(self.starttag(node, "div", **_get_starttag_attrs(node)))
 
     # Fieldset
     fieldset_proxy = nodes.Element(classes=["sft-fieldset"])
-    self.body.append(self.starttag(fieldset_proxy, "fieldset", role="radiogroup"))
+    self.body.append(self.starttag(fieldset_proxy, "fieldset"))
 
     # Legend
-    legend_proxy = nodes.Element(classes=["sft-legend"], ids=[node["legend_id"]])
+    legend_classes = ["sft-legend"]
+    if node.get("hide_legend"):
+        legend_classes.append(SFT_SR_ONLY)
+    legend_proxy = nodes.Element(classes=legend_classes, ids=[node["legend_id"]])
     self.body.append(self.starttag(legend_proxy, "legend"))
     self.body.append(self.encode(node["legend_text"]))
     self.body.append("</legend>")
 
-    # Radio Group Container
-    radio_group_proxy = nodes.Element(classes=["sft-radio-group"])
-    self.body.append(self.starttag(radio_group_proxy, "div"))
+    # CSS interaction container. It intentionally wraps controls and panels so
+    # :checked sibling selectors can work without JavaScript.
+    interactive_proxy = nodes.Element(classes=[SFT_INTERACTIVE])
+    self.body.append(self.starttag(interactive_proxy, "div"))
 
 
-def depart_filter_tabs_node(self: HTML5Translator, node: FilterTabsNode) -> None:
+def depart_rendered_filter_tabs_node(self: HTML5Translator, node: RenderedFilterTabsNode) -> None:
     self.body.append("</div></fieldset></div>")
 
 
 def visit_filter_tab_node(self: HTML5Translator, node: FilterTabNode) -> None:
     """Render the hidden radio input and its visible label."""
     # Radio Input
-    radio_proxy = nodes.Element(classes=["sr-only"], ids=[node["radio_id"]])
+    radio_proxy = nodes.Element(classes=[SFT_SR_ONLY], ids=[node["radio_id"]])
     radio_attrs = {
         "type": "radio",
         "name": node["group_id"],
@@ -188,14 +169,17 @@ def visit_filter_tab_node(self: HTML5Translator, node: FilterTabNode) -> None:
     self.body.append(self.starttag(radio_proxy, "input", **radio_attrs))
 
     # Label
-    self.body.append(f'<label for="{node["radio_id"]}">{self.encode(node["tab_name"])}</label>')
+    label_proxy = nodes.Element(ids=[node["label_id"]])
+    self.body.append(self.starttag(label_proxy, "label", **{"for": node["radio_id"]}))
+    self.body.append(self.encode(node["tab_name"]))
+    self.body.append("</label>")
 
     # Screen Reader Description
-    self.body.append(
-        f'<div class="sr-only" id="{node["desc_id"]}">'
-        f"{_('Select {tab_name} tab').format(tab_name=self.encode(node['tab_name']))}"
-        "</div>"
-    )
+    desc_proxy = nodes.Element(classes=[SFT_SR_ONLY], ids=[node["desc_id"]])
+    self.body.append(self.starttag(desc_proxy, "div"))
+    desc_text = _("Show {tab_name} content").format(tab_name=node["tab_name"])
+    self.body.append(self.encode(desc_text))
+    self.body.append("</div>")
 
 
 def depart_filter_tab_node(self: HTML5Translator, node: FilterTabNode) -> None:

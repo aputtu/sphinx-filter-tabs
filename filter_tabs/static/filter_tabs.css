@@ -1,12 +1,11 @@
-/* Sphinx Filter Tabs - Enhanced CSS with improved accessibility */
-
-
+/* Sphinx Filter Tabs */
 
 /* Main container */
 .sft-container {
-    border: 1px solid var(--sft-border, #e0e0e0);
+    border: 1px solid var(--sft-border, color-mix(in srgb, currentColor 25%, transparent));
     border-radius: var(--sft-border-radius, 8px);
-    background: var(--sft-bg, #ffffff);    
+    background: var(--sft-bg, transparent);
+    color: var(--sft-text, inherit);
     overflow: hidden;
     margin: 1.5em 0;
 }
@@ -20,43 +19,43 @@
 
 /* Visible, meaningful legend */
 .sft-legend {
-    background: var(--sft-header-bg, #f8f9fa);
+    background: var(--sft-header-bg, transparent);
     padding: 12px 20px;
     margin: 0;
     font-weight: 600;
-    color: var(--sft-text, #495057);
-    border-bottom: 1px solid var(--sft-border, #e0e0e0);
+    color: var(--sft-text, inherit);
+    border-bottom: 1px solid var(--sft-border, color-mix(in srgb, currentColor 25%, transparent));
     width: 100%;
     font-size: 0.95em;
 }
 
-/* Radio group container */
-.sft-radio-group {
+/* Interaction container: controls and panels share this parent for CSS-only switching */
+.sft-interactive {
     display: flex;
     flex-wrap: wrap;
-    background: var(--sft-header-bg, rgba(0,0,0,0.03));
-    border-bottom: 1px solid var(--sft-border, #e0e0e0);
+    background: var(--sft-header-bg, transparent);
+    border-bottom: 1px solid var(--sft-border, color-mix(in srgb, currentColor 25%, transparent));
     padding: 0 10px;
 }
 
 /* Hidden radio buttons (accessible to screen readers) */
-.sft-radio-group input[type="radio"] {
+.sft-interactive input[type="radio"] {
     width: 1px;
     height: 1px;
-    opacity: 0.01;
+    opacity: 0;
     position: absolute;
     z-index: -1;
     margin: 0;
 }
 
 /* Tab labels */
-.sft-radio-group label {
+.sft-interactive label {
     display: block;
     padding: 12px 18px;
     cursor: pointer;
     transition: all 0.2s ease;
     border-bottom: 3px solid transparent;
-    color: var(--sft-text-muted, #6c757d);
+    color: var(--sft-text-muted, inherit);
     font-weight: 500;
     font-size: var(--sft-tab-font-size, 1em);
     position: relative;
@@ -64,25 +63,31 @@
 }
 
 /* Active tab styling */
-.sft-radio-group input[type="radio"]:checked + label {
-    color: var(--sft-highlight-color, #007bff);
-    border-bottom-color: var(--sft-highlight-color, #007bff);
-    background: var(--sft-tab-active-bg, #ffffff);
+.sft-interactive input[type="radio"]:checked + label {
+    color: var(--sft-highlight-color, LinkText);
+    border-bottom-color: var(--sft-highlight-color, LinkText);
+    background: var(--sft-tab-active-bg, transparent);
     font-weight: 600;
 }
 
-/* Focus styling for keyboard navigation */
-.sft-radio-group input[type="radio"]:focus + label {
-    outline: 2px solid var(--sft-highlight-color, #007bff);
+/* Focus styling - only for keyboard navigation */
+.sft-interactive input[type="radio"]:focus-visible + label {
+    outline: 2px solid var(--sft-highlight-color, LinkText);
     outline-offset: 2px;
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--sft-highlight-color, #007bff) 25%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--sft-highlight-color, LinkText) 25%, transparent);
     z-index: 1;
 }
 
+/* Hide focus ring for mouse users */
+.sft-interactive input[type="radio"]:focus:not(:focus-visible) + label {
+    outline: none;
+    box-shadow: none;
+}
+
 /* Hover effects */
-.sft-radio-group label:hover {
-    color: var(--sft-text, #495057);
-    background: color-mix(in srgb, var(--sft-highlight-color, #007bff) 8%, transparent);
+.sft-interactive label:hover {
+    color: var(--sft-highlight-color, LinkText);
+    background: color-mix(in srgb, var(--sft-highlight-color, LinkText) 8%, transparent);
 }
 
 /* Content area */
@@ -97,39 +102,9 @@
     outline: none;
 }
 
-/* Enhanced focus styling for CSS-only version */
-.sft-panel:focus {
-    outline: 3px solid var(--sft-highlight-color, #007bff);
-    outline-offset: 2px;
-    border-radius: 4px;
-    background: color-mix(in srgb, var(--sft-highlight-color, #007bff) 5%, transparent);
-    /* Ensure smooth transition */
-    transition: background-color 0.2s ease;
-}
-
-/* Visual focus indicator for better UX */
-.sft-panel:focus::before {
-    content: "→ ";
-    color: var(--sft-highlight-color, #007bff);
-    font-weight: bold;
-    margin-right: 0.5em;
-}
-
-/* Improve screen reader flow for inline formatting */
-strong, b, em, i {
-    speak: normal;
-}
-
-/* Ensure tab panels are easily discoverable when focused */
-.sft-panel[role="tabpanel"]:focus {
-    position: relative;
-    z-index: 1;
-}
-
-/* ENHANCED: Focus styling for content within panels */
-.sft-panel:focus-within {
-    outline: 1px solid var(--sft-highlight-color, #007bff);
-    outline-offset: -1px;
+/* Ensure focus-within doesn't add double outlines for mouse users */
+.sft-panel:focus-within:not(:focus):not(:has(:focus-visible)) {
+    outline: none;
 }
 
 /* General content panel - always visible */
@@ -137,16 +112,14 @@ strong, b, em, i {
     display: block;
     margin-bottom: 20px;
     padding-bottom: 20px;
-    border-bottom: 1px solid var(--sft-border, #eeeeee);
+    border-bottom: 1px solid var(--sft-border, color-mix(in srgb, currentColor 25%, transparent));
 }
 
 /* Panel visibility selectors are generated dynamically into filter_tabs_theme.css
  * by the extension at build time, scaled to the actual number of tabs used and
  * using the child combinator (>) to correctly isolate nested tab groups. */
 
-/* ENHANCED: Accessibility improvements for content within panels */
-
-/* Make paragraphs within panels more accessible */
+/* Panel content spacing */
 .sft-panel p {
     margin: 0.75em 0;
     line-height: 1.5;
@@ -160,23 +133,21 @@ strong, b, em, i {
     margin-bottom: 0;
 }
 
-/* Enhanced code block accessibility */
+/* Code block focus */
 .sft-panel .highlight pre,
 .sft-panel code {
-    /* Ensure code blocks are focusable and readable */
     border-radius: 4px;
     position: relative;
 }
 
 .sft-panel .highlight pre:focus,
 .sft-panel code:focus {
-    outline: 2px solid var(--sft-highlight-color, #007bff);
+    outline: 2px solid var(--sft-highlight-color, LinkText);
     outline-offset: 2px;
-    /* Ensure the content is announced to screen readers */
     z-index: 1;
 }
 
-/* Make lists more accessible */
+/* List spacing */
 .sft-panel ul,
 .sft-panel ol {
     margin: 0.75em 0;
@@ -188,16 +159,16 @@ strong, b, em, i {
     line-height: 1.4;
 }
 
-/* Enhanced blockquote accessibility */
+/* Blockquotes */
 .sft-panel blockquote {
     margin: 1em 0;
     padding: 0.5em 1em;
-    border-left: 4px solid var(--sft-border, #dddddd);
-    background: var(--sft-blockquote-bg, #f9f9f9);
+    border-left: 4px solid var(--sft-border, color-mix(in srgb, currentColor 25%, transparent));
+    background: var(--sft-blockquote-bg, transparent);
 }
 
-/* Screen reader only content */
-.sr-only {
+/* Screen-reader-only content */
+.sft-sr-only {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -207,108 +178,82 @@ strong, b, em, i {
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
-}
-
-/* ENHANCED: Skip link for better keyboard navigation */
-.sft-container .skip-to-content {
-    position: absolute;
-    top: -40px;
-    left: 6px;
-    background: var(--sft-highlight-color, #007bff);
-    color: white;
-    padding: 8px;
-    text-decoration: none;
-    border-radius: 4px;
-    z-index: 1000;
-}
-
-.sft-container .skip-to-content:focus {
-    top: 6px;
+    pointer-events: none; /* Prevent interaction */
+    user-select: none;    /* Prevent text selection from showing "ghost" areas */
 }
 
 /* Collapsible sections */
-.collapsible-section {
-    border: 1px solid var(--sft-border, #e0e0e0);
-    border-left: 4px solid var(--sft-collapsible-accent-color, #17a2b8);
+.sft-collapsible-section {
+    border: 1px solid var(--sft-border, color-mix(in srgb, currentColor 25%, transparent));
+    border-left: 4px solid var(--sft-collapsible-accent-color, var(--sft-highlight-color, LinkText));
     border-radius: 4px;
     margin-top: 1em;
 }
 
-.collapsible-section summary {
+.sft-collapsible-section summary {
     display: block;
     cursor: pointer;
     padding: 12px;
     font-weight: bold;
-    background-color: var(--sft-summary-bg, #f9f9f9);
+    background-color: var(--sft-summary-bg, transparent);
     outline: none;
     list-style: none;
 }
 
-.collapsible-section summary::-webkit-details-marker {
+.sft-collapsible-section summary::-webkit-details-marker {
     display: none;
 }
 
-.collapsible-section[open] > summary { 
-    border-bottom: 1px solid var(--sft-border, #e0e0e0); 
+.sft-collapsible-section[open] > summary {
+    border-bottom: 1px solid var(--sft-border, color-mix(in srgb, currentColor 25%, transparent));
 }
 
-.custom-arrow { 
-    display: inline-block; 
-    width: 1em; 
-    margin-right: 8px; 
-    transition: transform 0.2s; 
+.sft-custom-arrow {
+    display: inline-block;
+    width: 1em;
+    margin-right: 8px;
+    transition: transform 0.2s;
 }
 
-.collapsible-section[open] > summary .custom-arrow { 
-    transform: rotate(90deg); 
+.sft-collapsible-section[open] > summary .sft-custom-arrow {
+    transform: rotate(90deg);
 }
 
-.collapsible-content { 
-    padding: 15px; 
+.sft-collapsible-content {
+    padding: 15px;
 }
 
-/* ENHANCED: High contrast mode support with better visibility */
-@media (prefers-contrast: high) {
-    .sft-radio-group input[type="radio"]:checked + label {
+/* Higher contrast preferences */
+@media (prefers-contrast: more) {
+    .sft-interactive input[type="radio"]:checked + label {
         border-bottom-width: 4px;
-        background: #000;
-        color: #fff;
+        background: Canvas;
+        color: CanvasText;
     }
-    
-    .sft-radio-group input[type="radio"]:focus + label {
-        box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.8);
-        outline: 3px solid #fff;
+
+    .sft-interactive input[type="radio"]:focus-visible + label {
+        box-shadow: 0 0 0 4px color-mix(in srgb, CanvasText 50%, transparent);
+        outline: 3px solid Canvas;
     }
-    
-    .sft-panel:focus {
-        outline: 3px solid #000;
-        background: #fff;
-    }
+
 }
 
 /* Reduced motion preferences */
 @media (prefers-reduced-motion: reduce) {
-    .sft-radio-group label,
-    .custom-arrow {
-        transition: none;
-    }
-}
-
-/* ENHANCED: Screen reader specific improvements */
-@media (prefers-reduced-motion: reduce) {
-    /* Ensure focus changes are immediate for screen reader users */
+    .sft-interactive label,
+    .sft-custom-arrow,
     .sft-panel {
         transition: none;
     }
 }
 
-/* Force visibility for screen reader testing */
+/* Forced-colors support */
 @media (forced-colors: active) {
     .sft-panel {
         border: 1px solid ButtonText;
     }
-    
-    .sft-radio-group input[type="radio"]:checked + label {
+
+    .sft-interactive input[type="radio"]:checked + label {
         border: 2px solid Highlight;
         background: Highlight;
         color: HighlightText;
