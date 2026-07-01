@@ -4,7 +4,9 @@ from importlib.metadata import version as _get_version
 from pathlib import Path
 
 # Make the package importable when building docs without installing it first.
-sys.path.insert(0, str(Path(__file__).parent.parent))
+_DOCS_DIR = Path(__file__).parent
+sys.path.insert(0, str(_DOCS_DIR.parent))
+sys.path.insert(0, str(_DOCS_DIR / "_ext"))
 
 project = "Sphinx Extension - Filter Tabs"
 copyright = "2025-2026, Aputsiak Niels Janussen"
@@ -18,8 +20,8 @@ except PackageNotFoundError:
 # -- General configuration ---------------------------------------------------
 extensions = [
     "filter_tabs",
-    "sphinx_rtd_theme",
     "sphinx.ext.intersphinx",
+    "validation_fixes",
 ]
 
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
@@ -30,7 +32,10 @@ intersphinx_mapping = {
 }
 
 # -- HTML output -------------------------------------------------------------
-html_theme = "sphinx_rtd_theme"
+templates_path = ["_templates"]
+html_static_path = ["_static"]
+html_css_files = ["sphinx-filter-tabs-docs.css"]
+pygments_style = "vs"
 
 # -- LaTeX output ------------------------------------------------------------
 latex_elements = {
@@ -52,5 +57,4 @@ latex_documents = [
 ]
 
 # -- Options for filter-tabs extension ---------------------------------------
-filter_tabs_highlight_color = "#d45234"
 filter_tabs_debug_mode = False

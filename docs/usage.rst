@@ -1,16 +1,15 @@
-Usage Example
-=============
+Usage Examples
+==============
 
 Examples
 --------
 
-Here is a live demonstration of the extension with the new simplified syntax.
+This example shows the basic ``filter-tabs`` and ``tab`` syntax.
 
 .. filter-tabs::
 
     This is general content visible regardless of the selected filter.
-    It's perfect for introductory text or information that applies to
-    all tabs.
+    Use it for introductory text or instructions that apply to every tab.
 
     .. tab:: Python (default)
 
@@ -61,8 +60,8 @@ Here is a live demonstration of the extension with the new simplified syntax.
       .. filter-tabs::
 
           This is general content visible regardless of the selected
-          filter. It's perfect for introductory text or information
-          that applies to all tabs.
+          filter. Use it for introductory text or instructions that
+          apply to every tab.
 
           .. tab:: Python (default)
 
@@ -103,10 +102,21 @@ Here is a live demonstration of the extension with the new simplified syntax.
       \newpage
 
 Using ARIA Labels for Better Accessibility
--------------------------------------------
+------------------------------------------
 
-For improved screen reader support, you can provide descriptive ARIA labels
-that give more context than the short visual tab names:
+Use ``:aria-label:`` when a short visible tab name needs more context for
+screen reader users.
+
+The ``:aria-label:`` option does not change the visible tab labels or the
+visible legend above the tabs. It is added to each tab's hidden radio input, so
+assistive technology can announce a more descriptive control name than the
+short label shown on screen.
+
+In the example below, the visible legend is still generated automatically from
+the tab names. ``CLI`` and ``GUI`` match the built-in ``interface`` category, so
+the extension renders the legend as ``Choose interface: CLI, GUI``. The
+``(default)`` marker only selects the initially active tab; it is removed from
+the visible tab name before the legend is generated.
 
 .. filter-tabs::
 
@@ -119,28 +129,24 @@ that give more context than the short visual tab names:
 
         .. code-block:: bash
 
-            # Using pip
-            pip install sphinx-filter-tabs
-
-            # Or using pipx for isolated installation
-            pipx install sphinx-filter-tabs
+            python -m pip install sphinx-filter-tabs
 
     .. tab:: GUI (default)
-       :aria-label: Graphical Interface via Anaconda
+       :aria-label: Graphical interface instructions for an editor or IDE
 
-        Install using **Anaconda Navigator**:
+        Install from your editor or IDE package manager:
 
-        1. Open Anaconda Navigator
-        2. Go to Environments → base (root)
-        3. Change dropdown from "Installed" to "All"
-        4. Search for ``sphinx-filter-tabs``
-        5. Check the checkbox and click "Apply"
+        1. Select the Python environment that builds your Sphinx project.
+        2. Search PyPI packages for ``sphinx-filter-tabs``.
+        3. Install the package.
+        4. Rebuild the documentation.
 
-        Alternatively, use the Anaconda Prompt:
+        If your editor opens an integrated terminal, this command is
+        equivalent:
 
         .. code-block:: bash
 
-            conda install -c conda-forge sphinx-filter-tabs
+            python -m pip install sphinx-filter-tabs
 
 .. only:: latex
 
@@ -167,28 +173,24 @@ that give more context than the short visual tab names:
 
               .. code-block:: bash
 
-                  # Using pip
-                  pip install sphinx-filter-tabs
-
-                  # Or using pipx for isolated installation
-                  pipx install sphinx-filter-tabs
+                  python -m pip install sphinx-filter-tabs
 
           .. tab:: GUI (default)
-             :aria-label: Graphical Interface via Anaconda
+             :aria-label: Graphical interface instructions for an editor or IDE
 
-              Install using **Anaconda Navigator**:
+              Install from your editor or IDE package manager:
 
-              1. Open Anaconda Navigator
-              2. Go to Environments → base (root)
-              3. Change dropdown from "Installed" to "All"
-              4. Search for ``sphinx-filter-tabs``
-              5. Check the checkbox and click "Apply"
+              1. Select the Python environment that builds your Sphinx project.
+              2. Search PyPI packages for ``sphinx-filter-tabs``.
+              3. Install the package.
+              4. Rebuild the documentation.
 
-              Alternatively, use the Anaconda Prompt:
+              If your editor opens an integrated terminal, this command is
+              equivalent:
 
               .. code-block:: bash
 
-                  conda install -c conda-forge sphinx-filter-tabs
+                  python -m pip install sphinx-filter-tabs
 
 .. only:: latex
 
@@ -199,14 +201,21 @@ that give more context than the short visual tab names:
 Providing a Custom Legend
 -------------------------
 
-For cases where the auto-generated legend (e.g., "Choose programming language...")
-is not specific enough, you can provide a custom title for the entire tab group
-using the ``:legend:`` option.
+By default, the extension creates a visible legend from the tab names. For
+example, tabs named ``Staging`` and ``Production`` match the built-in
+``environment`` category and would produce ``Choose environment: Staging,
+Production``.
+
+When that generated text is not the clearest label for the group, provide an
+explicit visible legend with the ``:legend:`` option. This is different from
+``:aria-label:``: ``:legend:`` changes the visible group label for everyone,
+while ``:aria-label:`` changes the accessible name of an individual hidden tab
+control.
 
 .. only:: latex
 
-   See home page for illustration purposes. 
-   This PDF version  does not show output from filter-tab, but tab only.
+   In PDF output, tab groups are rendered as sequential sections. The live HTML
+   documentation shows the interactive tab group.
 
 .. filter-tabs::
    :legend: Select Your Deployment Environment
@@ -226,13 +235,13 @@ Source Code for Custom Legend
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
    .. only:: html
-      
+
       The following RST markup was used to create the above example:
 
    .. only:: latex
 
-      It is possible to use :legend: to control output instead of
-      having tab names included automatically.
+      Use ``:legend:`` when the generated legend is not the clearest label for
+      the tab group.
 
 
 
@@ -258,45 +267,113 @@ Source Code for Custom Legend
 
       \newpage
 
+Hiding the Visible Legend
+-------------------------
+
+Some pages already introduce the tab context in nearby prose or headings. In
+those cases, add ``:hide-legend:`` to keep the tab group visually compact while
+preserving the semantic ``<legend>`` for assistive technology.
+
+.. filter-tabs::
+   :legend: Choose operating system for install commands
+   :hide-legend:
+
+   .. tab:: Windows
+
+      Install from PowerShell:
+
+      .. code-block:: powershell
+
+         pip install sphinx-filter-tabs
+
+   .. tab:: macOS
+
+      Install from Terminal:
+
+      .. code-block:: bash
+
+         python3 -m pip install sphinx-filter-tabs
+
+   .. tab:: Linux
+
+      Install from a shell:
+
+      .. code-block:: bash
+
+         python3 -m pip install sphinx-filter-tabs
+
+Source Code for Hidden Legend
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following RST markup was used to create the compact tab group above:
+
+.. code-block:: rst
+   :class: copyable
+
+   .. filter-tabs::
+      :legend: Choose operating system for install commands
+      :hide-legend:
+
+      .. tab:: Windows
+
+         Install from PowerShell:
+
+         .. code-block:: powershell
+
+            pip install sphinx-filter-tabs
+
+      .. tab:: macOS
+
+         Install from Terminal:
+
+         .. code-block:: bash
+
+            python3 -m pip install sphinx-filter-tabs
+
+      .. tab:: Linux
+
+         Install from a shell:
+
+         .. code-block:: bash
+
+            python3 -m pip install sphinx-filter-tabs
+
+.. only:: latex
+
+   .. raw:: latex
+
+      \newpage
+
 Nested Tabs
 -----------
 
 You can nest ``filter-tabs`` directives to create more complex layouts.
-Simply indent the inner tab set within a ``tab`` directive of the outer set.
+Indent the inner tab group inside a ``tab`` directive of the outer group.
 
 .. filter-tabs::
 
     .. tab:: Windows (default)
 
-        Windows installation instructions.
-        Choose your package manager
-        below:
+        Windows installation instructions. Choose the command that matches
+        your Python launcher:
 
         .. filter-tabs::
 
-            .. tab:: Pip (default)
+            .. tab:: py launcher (default)
 
-                Install with **pip** on Windows:
-
-                .. code-block:: powershell
-
-                    # Basic installation
-                    pip install sphinx-filter-tabs
-
-                    # Or install with documentation dependencies
-                    pip install sphinx-filter-tabs[docs]
-
-            .. tab:: Conda
-
-                Install with **Conda** on Windows:
+                Install with the Windows ``py`` launcher:
 
                 .. code-block:: powershell
 
-                    # Install from conda-forge channel
-                    conda install -c conda-forge sphinx-filter-tabs
+                    py -m pip install sphinx-filter-tabs
 
-                    # Or using mamba for faster resolution
-                    mamba install -c conda-forge sphinx-filter-tabs
+            .. tab:: python command
+
+                Install with the active ``python`` command:
+
+                .. code-block:: powershell
+
+                    python -m pip install sphinx-filter-tabs
 
     .. tab:: macOS
 
@@ -305,10 +382,7 @@ Simply indent the inner tab set within a ``tab`` directive of the outer set.
         .. code-block:: bash
 
             # Using Homebrew Python
-            pip3 install sphinx-filter-tabs
-
-            # Or using MacPorts
-            sudo port install py-sphinx-filter-tabs
+            python3 -m pip install sphinx-filter-tabs
 
     .. tab:: Linux
 
@@ -316,11 +390,7 @@ Simply indent the inner tab set within a ``tab`` directive of the outer set.
 
         .. code-block:: bash
 
-            # Debian/Ubuntu
-            sudo apt install python3-sphinx-filter-tabs
-
-            # Or using pip
-            pip install --user sphinx-filter-tabs
+            python3 -m pip install --user sphinx-filter-tabs
 
 .. only:: latex
 
@@ -338,33 +408,26 @@ Simply indent the inner tab set within a ``tab`` directive of the outer set.
 
           .. tab:: Windows (default)
 
-              Windows installation instructions. Choose your package manager below:
+              Windows installation instructions. Choose the command that matches
+              your Python launcher:
 
               .. filter-tabs::
 
-                  .. tab:: Pip (default)
+                  .. tab:: py launcher (default)
 
-                      Install with **pip** on Windows:
-
-                      .. code-block:: powershell
-
-                          # Basic installation
-                          pip install sphinx-filter-tabs
-
-                          # Or install with documentation dependencies
-                          pip install sphinx-filter-tabs[docs]
-
-                  .. tab:: Conda
-
-                      Install with **Conda** on Windows:
+                      Install with the Windows ``py`` launcher:
 
                       .. code-block:: powershell
 
-                          # Install from conda-forge channel
-                          conda install -c conda-forge sphinx-filter-tabs
+                          py -m pip install sphinx-filter-tabs
 
-                          # Or using mamba for faster resolution
-                          mamba install -c conda-forge sphinx-filter-tabs
+                  .. tab:: python command
+
+                      Install with the active ``python`` command:
+
+                      .. code-block:: powershell
+
+                          python -m pip install sphinx-filter-tabs
 
           .. tab:: macOS
 
@@ -373,10 +436,7 @@ Simply indent the inner tab set within a ``tab`` directive of the outer set.
               .. code-block:: bash
 
                   # Using Homebrew Python
-                  pip3 install sphinx-filter-tabs
-
-                  # Or using MacPorts
-                  sudo port install py-sphinx-filter-tabs
+                  python3 -m pip install sphinx-filter-tabs
 
           .. tab:: Linux
 
@@ -384,11 +444,7 @@ Simply indent the inner tab set within a ``tab`` directive of the outer set.
 
               .. code-block:: bash
 
-                  # Debian/Ubuntu
-                  sudo apt install python3-sphinx-filter-tabs
-
-                  # Or using pip
-                  pip install --user sphinx-filter-tabs
+                  python3 -m pip install --user sphinx-filter-tabs
 
 .. only:: latex
 
@@ -399,17 +455,17 @@ Simply indent the inner tab set within a ``tab`` directive of the outer set.
 Large Tab Groups
 ----------------
 
-There is no fixed limit on the number of tabs in a group. The panel-visibility
-CSS is generated at build time, scaled exactly to the tabs present in each
-build. The following example shows 12 tabs — a realistic count for a library
-that ships official clients for many languages.
+There is no fixed 10-tab limit. The panel-visibility CSS is generated at build
+time and scales to the tab groups used in each build. The following example
+shows 12 tabs, which is realistic for a library that ships official clients for
+many languages.
 
 .. note::
 
    Tab groups above 15 will trigger a build warning encouraging you to
-   consider restructuring. Groups above 20 are capped and produce a build
-   error. For truly large sets of alternatives, a :rst:dir:`toctree` or a
-   comparison table is usually a better fit.
+   consider restructuring. The generated CSS scales to the largest tab group
+   in the build, but for truly large sets of alternatives a :rst:dir:`toctree`
+   or a comparison table is usually a better fit.
 
 .. filter-tabs::
    :legend: Install the client library for your language
@@ -431,7 +487,7 @@ that ships official clients for many languages.
       .. code-block:: bash
 
          npm install acme-client
-         # Type declarations are bundled — no @types package needed.
+         # Type declarations are bundled; no @types package needed.
 
    .. tab:: Go
 

@@ -79,8 +79,8 @@ extensions = [
 Add these optional settings to your `conf.py`:
 
 ```python
-# Customize the active tab highlight color
-filter_tabs_highlight_color = '#007bff'  # Default: '#007bff'
+# Use the active Sphinx theme's colors by default, or set an explicit color.
+filter_tabs_highlight_color = 'auto'     # Default: 'auto'
 
 # Enable debug logging during development
 filter_tabs_debug_mode = False           # Default: False
@@ -95,6 +95,18 @@ Override the auto-generated legend:
 ```rst
 .. filter-tabs::
    :legend: Select Your Installation Method
+
+   .. tab:: Quick Install
+      Content here...
+```
+
+Hide the legend visually while keeping the semantic label for assistive
+technology:
+
+```rst
+.. filter-tabs::
+   :legend: Select Your Installation Method
+   :hide-legend:
 
    .. tab:: Quick Install
       Content here...

@@ -1,0 +1,14 @@
+{# Sphinx 9.1's default Alabaster search field references a missing
+   searchlabel id. Keep the same compact sidebar search UI, but name the input
+   directly so generated docs have a valid accessibility contract. #}
+{%- if pagename != "search" and builder != "singlehtml" %}
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="{{ pathto('search') }}" method="get">
+      <input type="text" name="q" aria-label="{{ _('Search') }}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="{{ _('Search') }}"/>
+      <input type="submit" value="{{ _('Go') }}" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+{%- endif %}

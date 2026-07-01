@@ -1,0 +1,69 @@
+/* Validation and accessibility fixes for this documentation build. */
+
+.wy-side-nav-search {
+    background: #1f5f8b;
+}
+
+.wy-nav-content a,
+footer a {
+    color: #1b5e88;
+    text-decoration: underline;
+    text-underline-offset: 0.14em;
+}
+
+.rst-content code.literal,
+.rst-content tt.literal {
+    background: #f6f8fa;
+    color: #24292f;
+}
+
+.rst-content .admonition-title,
+.rst-content .note .admonition-title,
+.rst-content .admonition.note .admonition-title {
+    background: #1f5f8b;
+    color: #fff;
+}
+
+footer,
+footer p,
+footer .contentinfo p {
+    color: #404040;
+}
+
+div.footer,
+div.footer a {
+    background-color: #fff;
+    color: #404040 !important;
+}
+
+@media screen and (min-width: 941px) {
+    div.sphinxsidebar {
+        max-height: calc(100vh - 2rem);
+        overscroll-behavior: contain;
+        position: sticky;
+        top: 1rem;
+    }
+}
+
+.highlight .c1 {
+    background-color: #faf3e8 !important;
+    color: #005a00 !important;
+}
+
+.highlight .nc {
+    background-color: #faf3e8 !important;
+    color: #005f73 !important;
+}
+
+@media screen and (max-width: 940px) {
+    div.sphinxsidebar,
+    div.sphinxsidebarwrapper {
+        background-color: #333;
+        color: #fff !important;
+    }
+}
+
+pre[tabindex="0"]:focus-visible {
+    outline: 2px solid LinkText;
+    outline-offset: 2px;
+}

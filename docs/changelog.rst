@@ -1,6 +1,34 @@
 Changelog
 =========
 
+Version 1.6.0 (2026-07-01)
+--------------------------
+
+**Accessibility & API Contract**
+
+* **Native HTML Accessibility Contract**: Kept the HTML output on the native
+  radio-group pattern by removing ARIA ``tabpanel`` semantics from plain
+  content panels and leaving the outer container as a structural ``div``.
+* **Clearer Screen Reader Helper Text**: Updated hidden radio descriptions to
+  describe showing content instead of selecting ARIA-style tabs.
+* **Opt-in Collapsible Admonitions**: Collapsible admonitions now default to
+  disabled and require the namespaced ``sft-collapsible`` class when enabled.
+
+**Theming & Layout**
+
+* **Legend Display Control**: Added ``:hide-legend:`` for compact tab groups
+  that still preserve a semantic legend for assistive technology.
+* **Large Tab Groups**: Generated panel-visibility CSS now scales beyond 20
+  tabs when a build contains larger groups. Groups above 15 still emit a
+  usability warning.
+
+**Developer & Packaging**
+
+* **Node Lifecycle Split**: Separated parse-time filter-tab nodes from rendered
+  HTML nodes to keep Sphinx transform boundaries clearer.
+* **Runtime Dependency Cleanup**: Kept the public package dependency metadata
+  limited to direct runtime requirements.
+
 Version 1.5.0 (2026-03-05)
 --------------------------
 
@@ -30,11 +58,9 @@ Version 1.4.3 (2026-02-28)
 **Accessibility & Polish**
 
 * **ARIA Refinement**: Added ``aria-controls`` attributes to radio buttons,
-  linking them explicitly to their corresponding panels for superior
-  screen reader synchronization.
-* **100% Test Coverage**: Reached the milestone of 100% code coverage across
-  every single file in the ``filter_tabs`` package, including error paths and
-  builder-specific edge cases.
+  linking them explicitly to their corresponding panels.
+* **Test Coverage**: Expanded package-level test coverage, including error
+  paths and builder-specific edge cases.
 * **CI Stability**: Fixed formatting and import order issues in the test suite
   that were blocking GitHub Actions.
 * **New Guidelines**: Added a comprehensive ``CONTRIBUTING.md`` to assist new
@@ -45,13 +71,13 @@ Version 1.4.2 (2026-02-28)
 
 **Security**
 
-* **HTML encoding**: All user-provided strings (tab names and legend text) are
-  now properly HTML-encoded before rendering to prevent cross-site scripting
+* **HTML encoding**: User-provided strings, including tab names and legend
+  text, are HTML-encoded before rendering to prevent cross-site scripting
   (XSS) vulnerabilities.
 * **CSS validation**: The highlight color configuration is now validated to
   ensure it contains only safe CSS color values, preventing potential CSS
   injection.
-* **Security Test Suite**: Introduced a targetted security test suite to
+* **Security Test Suite**: Introduced a targeted security test suite to
   verify these protections and prevent future regressions.
 
 Version 1.4.1 (2026-02-28)
@@ -74,9 +100,9 @@ Version 1.4.1 (2026-02-28)
   eliminating common "missing import" warnings.
 * **Full style pass**: Re-formatted the entire codebase and organized import
   blocks using ``ruff`` to ensure consistent style across all new modules.
-* **Workspace cleanup**: Updated ``.gitignore`` to properly handle
-  ``pdf_build.log`` and ``test_out.txt``, ensuring temporary build artifacts
-  stay out of the repository.
+* **Workspace cleanup**: Updated ``.gitignore`` to ignore ``pdf_build.log``
+  and ``test_out.txt``, keeping temporary build artifacts out of the
+  repository.
 
 Version 1.4.0 (2026-02-25)
 ---------------------------
@@ -86,7 +112,7 @@ Version 1.4.0 (2026-02-25)
 * Deleted dead ``renderer.py`` module. ``FilterTabsRenderer`` was never
   instantiated and imported a non-existent ``TabData`` class. All rendering
   logic lives in ``extension.py``.
-* Modernised type annotations throughout ``extension.py``: replaced
+* Modernized type annotations throughout ``extension.py``: replaced
   ``typing.List``/``Dict``/``Optional`` with built-in generics (PEP 585)
   and ``X | None`` (PEP 604); annotated the previously bare ``app_config``
   parameter with ``sphinx.config.Config``; added missing ``-> None`` return
@@ -104,8 +130,8 @@ Version 1.4.0 (2026-02-25)
   edge cases, ``_validate_slots`` warnings (duplicate names, empty content,
   multiple defaults), ``tab``-outside-context error, all three
   ``_infer_content_type`` paths, collapsible admonitions (collapsed,
-  expanded, no-title, non-HTML builder), and ``_write_theme_css`` warn/cap
-  thresholds.
+  expanded, no-title, non-HTML builder), and ``_write_theme_css`` large-group
+  selector generation.
 * Replaced ``black`` with ``ruff`` + ``mypy`` + ``types-docutils`` in
   ``requirements/dev.txt``; pinned docs Sphinx to ``>=9.1`` in
   ``requirements/docs.txt``; consolidated CI dependency installation to
@@ -147,8 +173,11 @@ Version 1.3.1 (2026-02-19)
 * Added explicit LaTeX skip-visitors for all custom nodes, preventing silent
   failures if they appear outside expected code paths.
 * Fixed hover and focus tints to use ``color-mix()`` against
-  ``--sft-highlight-color`` rather than hardcoded ``rgba(0, 123, 255, …)``
-  values that did not follow user colour customisation.
+  ``--sft-highlight-color`` rather than hardcoded ``rgba(0, 123, 255, ...)``
+  values that did not follow user color customization.
+* Changed native theming so the default highlight color follows the active
+  Sphinx theme/browser link color. Explicit ``filter_tabs_highlight_color``
+  values still override the default.
 * Added ``__all__ = ['setup']`` to ``extension.py`` to declare the public API.
 
 **Documentation**
@@ -161,14 +190,19 @@ Version 1.3.0 (2026-02-06)
 
 **Compatibility & Infrastructure**
 
-* **Added Official Support for Sphinx 9.0 and 9.1**: Updated dependency constraints and testing matrix to ensure full compatibility with the latest Sphinx releases.
-* **Added Python 3.13 Support**: Verified compatibility and updated package classifiers.
-* **Future-Proofing**: Resolves `RemovedInSphinx11Warning` by refactoring configuration access to use `env.config` and safely handling builder checks.
+* **Added Official Support for Sphinx 9.0 and 9.1**: Updated dependency
+  constraints and the testing matrix for the latest Sphinx releases.
+* **Added Python 3.13 Support**: Verified compatibility and updated package
+  classifiers.
+* **Future-Proofing**: Resolved ``RemovedInSphinx11Warning`` by refactoring
+  configuration access to use ``env.config`` and safely handling builder
+  checks.
 
 **Development**
 
-* Optimized `tox` configuration for parallel testing.
-* Improved `export-project.sh` script to robustly exclude virtual environments and build artifacts.
+* Optimized ``tox`` configuration for parallel testing.
+* Improved ``export-project.sh`` to exclude virtual environments and build
+  artifacts.
 
 
 Version 1.2.6 (2025-09-09)
@@ -186,45 +220,45 @@ Version 1.2.6 (2025-09-09)
 Version 1.2.5 (2025-09-04)
 --------------------------
 
-Bump version
+Bumped version.
 
 Version 1.2.4 (2025-09-03)
 --------------------------
 
-Configuration to automate and simplify release process.
+Added configuration to automate and simplify the release process.
 
 
 Version 1.2.3 (2025-09-03)
 --------------------------
-This commit addresses several issues found during accessibility audit.
+This release addressed several issues found during an accessibility audit.
 
 * ARIA Role Correction: The role for content panels has been corrected
-  from `region` to the more accurate `tabpanel` to better align with
+  from ``region`` to ``tabpanel`` to better align with
   WAI-ARIA patterns for tabbed interfaces.
-* Native Keyboard Navigation: Custom JavaScript keyboard handlers for*
-  arrow keys have been removed. The component now relies entirely on the 
-  native, predictable browser behavior for `radiogroup` navigation, 
+* Native Keyboard Navigation: Custom JavaScript keyboard handlers for
+  arrow keys have been removed. The component now relies on native browser
+  behavior for ``radiogroup`` navigation,
   simplifying the code and improving the user experience.
-* Valid HTML Output: Dynamic CSS generation has been refactored to 
-  resolve W3C validation errors. Inline `<style>` blocks are no longer
+* Valid HTML Output: Dynamic CSS generation has been refactored to
+  resolve W3C validation errors. Inline ``<style>`` blocks are no longer
   injected into the body. Instead, CSS rules are collected and added to
-  the document `<head>` via the `html-page-context` Sphinx event.
-* Accessibility Documentation: A new document, `_accessibility.rst`, has
+  the document ``<head>`` via the ``html-page-context`` Sphinx event.
+* Accessibility Documentation: A new document, ``_accessibility.rst``, has
   been added. This file details the extension's accessibility
   implementation strategy and explains the conscious design choice
-  to use the robust `radiogroup` pattern to ensure CSS-first functionality.
+  to use the ``radiogroup`` pattern for CSS-first functionality.
 
 Version 1.2.2 (2025-09-01)
 --------------------------
 
-* Remove obsolete scripts complete_cleanup.sh and test_cleanup.sh
-* Improve export-project.sh, which now exclude dist and .pytest_cache
+* Removed obsolete ``complete_cleanup.sh`` and ``test_cleanup.sh`` scripts.
+* Improved ``export-project.sh`` so it excludes ``dist`` and ``.pytest_cache``.
 
 
 Version 1.2.1 (2025-09-01)
 --------------------------
 
-Fixes multiple issues from code review, improving test 
+Fixed multiple issues from code review, improving test
 robustness, documentation accuracy, and CI stability.
 
 
@@ -233,10 +267,10 @@ Version 1.2.0 (2025-08-31)
 
 First Production/Stable release.
 
-* No-breaking refactoring for easier maintainability
+* Non-breaking refactoring for easier maintainability
 * Consolidated six Python files into two, and reduced lines of code
-* extension.py: All Sphinx integration and output generation in one place
-* static/: UI functionality unchanged
+* ``extension.py``: All Sphinx integration and output generation in one place
+* ``static/``: UI functionality unchanged
 
 
 Version 1.1.0b (2025-08-30)
@@ -244,7 +278,7 @@ Version 1.1.0b (2025-08-30)
 
 **Changed**
 
-* Majorly refactored the entire codebase for simplicity and maintainability.
+* Refactored the codebase for simplicity and maintainability.
 * Simplified configuration options down to the essentials.
 * Improved error messages for missing tabs.
 
@@ -257,7 +291,8 @@ Version 1.1.0b (2025-08-30)
 Version 1.0.0b (2025-08-27)
 ---------------------------
 
-* **BREAKING CHANGE**: Simplified directive syntax - ``filter-tabs`` no longer requires tab names as arguments
+* **BREAKING CHANGE**: Simplified directive syntax; ``filter-tabs`` no longer
+  requires tab names as arguments
 * Tab names and defaults are now defined directly in ``.. tab::`` directives
 * Content outside ``.. tab::`` blocks automatically becomes general content
 * Added ``:aria-label:`` option to ``tab`` directive for enhanced accessibility
@@ -269,21 +304,21 @@ Version 1.0.0b (2025-08-27)
 Version 0.9.3b (2025-08-22)
 ---------------------------
 
-* Reintroduce doc deploy requirements, but now caching them (GitHub)
+* Reintroduced documentation deployment requirements with GitHub caching.
 
 
 Version 0.9.2b (2025-08-21)
 ---------------------------
 
 * Removed duplicate IDs in HTML and resulting W3 validation errors
-* Add dev, export, and improved setup scripts
+* Added development, export, and setup scripts.
 * Reduced doc deploy requirements from 1GB to 50MB
 
 
 Version 0.9.0b (2025-08-20)
 ---------------------------
 
-* Full WAI-ARIA compliance implemented
+* Added WAI-ARIA support
 * Added keyboard navigation (arrow keys, Home/End, Enter/Space)
 * Enhanced screen reader compatibility
 * Progressive JavaScript enhancement for better accessibility
