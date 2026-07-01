@@ -1,3 +1,6 @@
 {# The page title already carries the project name. Avoid Alabaster's duplicate
    sidebar logo heading, which Axe still evaluates on generated index pages even
    when hidden by the mobile layout. #}
+<p class="sft-sidebar-home">
+  <a href="{{ pathto(root_doc)|e }}">{{ _('Home') }}</a>
+</p>

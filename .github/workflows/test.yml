@@ -9,8 +9,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   # JOB 0: Lint and type-check
@@ -112,6 +110,10 @@ jobs:
     needs: [test, docs-check]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -194,7 +196,7 @@ jobs:
 
   publish:
     name: Publish package to PyPI
-    needs: test
+    needs: [test, docs-check]
     runs-on: ubuntu-latest
     
     # This condition ensures the job only runs when you push a new tag
@@ -206,6 +208,7 @@ jobs:
       url: https://pypi.org/p/sphinx-filter-tabs
     
     permissions:
+      contents: read
       id-token: write # Required for trusted publishing
 
     steps:
