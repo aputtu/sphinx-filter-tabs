@@ -9,7 +9,7 @@ $(PYTHON):
 	@echo "No virtual environment found. Run 'make setup' first."
 	@exit 1
 
-.PHONY: help setup export test html pdf docs all clean clean-all watch
+.PHONY: help setup export test html pdf docs validate all clean clean-all watch
 
 help:
 	@echo "Usage: make <target>"
@@ -19,9 +19,10 @@ help:
 	@echo ""
 	@echo "Development"
 	@echo "  test         Run tests"
-	@echo "  html         Build HTML documentation"
+	@echo "  html         Refresh PDF download if needed, then build HTML documentation"
 	@echo "  pdf          Build PDF documentation"
-	@echo "  docs         Build HTML and PDF documentation"
+	@echo "  docs         Build PDF documentation, then HTML documentation"
+	@echo "  validate     Validate generated HTML documentation"
 	@echo "  all          Run tests and build all documentation"
 	@echo "  watch        Watch for changes and auto-rebuild HTML"
 	@echo ""
@@ -47,6 +48,9 @@ pdf: $(PYTHON)
 
 docs: $(PYTHON)
 	@bash $(SCRIPTS)/dev.sh docs
+
+validate: $(PYTHON)
+	@bash $(SCRIPTS)/dev.sh validate
 
 all: $(PYTHON)
 	@bash $(SCRIPTS)/dev.sh all

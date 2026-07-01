@@ -15,6 +15,8 @@ PIP="$VENV_BIN/pip"
 PYTEST="$VENV_BIN/pytest"
 SPHINX_BUILD="$VENV_BIN/sphinx-build"
 WATCHMEDO="$VENV_BIN/watchmedo"
+PDF_DOWNLOAD="docs/_downloads/sphinxextension-filtertabs.pdf"
+DOCS_VALIDATOR="$PROJECT_ROOT/scripts/validate_docs.py"
 
 # Colors for output
 RED='\033[0;31m'
@@ -62,8 +64,10 @@ run_tests() {
 
 # Build HTML documentation
 build_html() {
+    refresh_pdf_download
+
     print_status "Building HTML documentation..."
-    $SPHINX_BUILD -b html docs docs/_build/html || {
+    $SPHINX_BUILD -E -a -b html docs docs/_build/html || {
         print_error "HTML build failed"
         exit 1
     }
@@ -71,17 +75,55 @@ build_html() {
     print_status "HTML docs available at: docs/_build/html/index.html"
 }
 
+validate_docs() {
+    print_status "Validating generated HTML documentation..."
+    "$VENV_BIN/python" "$DOCS_VALIDATOR" docs/_build/html || {
+        print_error "Documentation validation failed"
+        exit 1
+    }
+    print_success "Documentation validation passed"
+}
+
+# Return success when the downloadable PDF is missing or older than docs/code
+# inputs that affect the rendered documentation.
+pdf_download_is_stale() {
+    if [ ! -s "$PDF_DOWNLOAD" ]; then
+        return 0
+    fi
+
+    local newer_file
+    newer_file=$(
+        find docs filter_tabs \
+            \( -path "docs/_build" -o -path "docs/_downloads" -o -path "docs/__pycache__" \) -prune \
+            -o -type f \
+            \( -name "*.rst" -o -name "*.py" -o -name "*.css" -o -name "*.po" \) \
+            -newer "$PDF_DOWNLOAD" \
+            -print -quit
+    )
+
+    [ -n "$newer_file" ]
+}
+
+refresh_pdf_download() {
+    if pdf_download_is_stale; then
+        print_status "PDF download is missing or stale; rebuilding it before HTML..."
+        build_pdf
+    else
+        print_status "PDF download is up to date"
+    fi
+}
+
 # Build PDF documentation
 build_pdf() {
     print_status "Building PDF documentation..."
-    
+
     # Step 1: Build LaTeX source
     print_status "Building LaTeX source files..."
-    $SPHINX_BUILD -b latex docs docs/_build/latex || {
+    $SPHINX_BUILD -E -a -b latex docs docs/_build/latex || {
         print_error "LaTeX build failed"
         exit 1
     }
-    
+
     # Step 2: Compile LaTeX to PDF
     print_status "Compiling PDF from LaTeX..."
     (cd docs/_build/latex && make) || {
@@ -89,14 +131,14 @@ build_pdf() {
         print_warning "Make sure you have LaTeX installed (texlive-latex-recommended)"
         exit 1
     }
-    
+
     # Step 3: Copy PDF to downloads directory
     print_status "Copying PDF to downloads directory..."
     mkdir -p docs/_downloads
     cp docs/_build/latex/*.pdf docs/_downloads/ || {
         print_warning "Could not copy PDF to downloads directory"
     }
-    
+
     print_success "PDF documentation built"
     print_status "PDF available at: docs/_build/latex/sphinxextension-filtertabs.pdf"
 }
@@ -125,7 +167,7 @@ watch_changes() {
     $WATCHMEDO shell-command \
         --patterns="*.py;*.rst;*.css;*.js" \
         --recursive \
-        --command="echo 'Files changed, rebuilding...' && $PIP install -e . && $SPHINX_BUILD -b html docs docs/_build/html" \
+        --command="echo 'Files changed, rebuilding...' && $PIP install -e . && $SPHINX_BUILD -E -a -b html docs docs/_build/html" \
         . &
     
     # Keep the script running
@@ -138,9 +180,10 @@ show_help() {
     echo ""
     echo "Commands:"
     echo "  test          Install package and run tests"
-    echo "  html          Install package and build HTML docs"
+    echo "  html          Install package, refresh PDF if needed, and build HTML docs"
     echo "  pdf           Install package and build PDF docs"
-    echo "  docs          Install package and build both HTML and PDF docs"
+    echo "  docs          Install package, build PDF docs, then build HTML docs"
+    echo "  validate      Validate generated HTML documentation"
     echo "  all           Install package, run tests, and build all docs"
     echo "  clean         Clean all build directories"
     echo "  clean-all     Clean build directories, then build everything"
@@ -149,9 +192,10 @@ show_help() {
     echo ""
     echo "Examples:"
     echo "  ./dev.sh test                    # Quick test after code changes"
-    echo "  ./dev.sh html                    # Build HTML docs"
+    echo "  ./dev.sh html                    # Refresh PDF if needed, then build HTML docs"
     echo "  ./dev.sh pdf                     # Build PDF docs"
-    echo "  ./dev.sh docs                    # Build both HTML and PDF"
+    echo "  ./dev.sh docs                    # Build PDF docs, then HTML docs"
+    echo "  ./dev.sh validate                # Validate generated HTML docs"
     echo "  ./dev.sh all                     # Run tests and build everything"
     echo "  ./dev.sh clean-all               # Clean slate rebuild"
 }
@@ -172,14 +216,19 @@ case "$1" in
         ;;
     "docs")
         install_package
-        build_html
         build_pdf
+        build_html
+        ;;
+    "validate")
+        install_package
+        validate_docs
         ;;
     "all")
         install_package
         run_tests
-        build_html
         build_pdf
+        build_html
+        validate_docs
         print_success "Everything completed successfully!"
         ;;
     "clean")
@@ -189,8 +238,9 @@ case "$1" in
         clean_build
         install_package
         run_tests
-        build_html
         build_pdf
+        build_html
+        validate_docs
         print_success "Clean rebuild completed!"
         ;;
     "watch")
@@ -211,4 +261,3 @@ case "$1" in
         exit 1
         ;;
 esac
-
